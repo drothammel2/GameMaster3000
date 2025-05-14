@@ -1,4 +1,5 @@
-import javax.swing.plaf.basic.BasicBorders.MarginBorder;
+import games.Snake.Snake;
+import games.Mario.Mario;
 
 public class Main {
     public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package Mario;
+package games.Mario;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;

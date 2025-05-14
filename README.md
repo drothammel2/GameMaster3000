@@ -18,6 +18,7 @@ GameMaster3000 ist ein Java-basiertes Projekt, das als Grundlage für ein Spiel-
    ```
 3. Kompilieren und starten Sie das Projekt:
    ```bash
+   (gelogen)
    javac -d bin src/**/*.java
    java -cp bin Main
    ```

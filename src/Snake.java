@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.Random;
 
 public class Snake {
-    public void start() {
+    public static void start() {
         JFrame frame = new JFrame("Snake");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setUndecorated(true); // Kein Rahmen

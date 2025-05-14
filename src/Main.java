@@ -1,6 +1,23 @@
+import javax.swing.plaf.basic.BasicBorders.MarginBorder;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Willkommen bei GameMaster3000! Fatihs test");
-        // ...weitere Logik hier hinzufügen...
+
+        Window.startMainscreen(new Window.GameSelectionListener() {
+        
+            @Override
+            public void onGameSelected(String chosenGame) {
+                switch(chosenGame) {
+                    case "Mario":
+                        Mario.start();
+                        break;
+                    case "Snake":
+                        Snake.start();
+                        break;
+                    default:
+                        System.out.println("Kein gültiges Spiel ausgewählt.");
+                }
+            }
+        });
     }
 }

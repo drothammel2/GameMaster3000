@@ -18,7 +18,8 @@ public class Window {
     }
 
     public static void startMainscreen(GameSelectionListener listener) {
-        startMainscreen(listener, Arrays.asList("Mario", "Snake", "Tetris", "Dummy1", "Dummy2"));
+        // MonkeyType zur Liste hinzufügen!
+        startMainscreen(listener, Arrays.asList("Mario", "Snake", "Tetris", "Dummy1", "Dummy2", "MonkeyType"));
     }
 
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {
@@ -33,9 +34,10 @@ public class Window {
             label.setFont(new Font("Arial", Font.BOLD, 48));
 
             int numGames = gameNames.size();
-            // +1 für Quit-Button
-            int totalButtons = numGames + 1;
-            int cols = (int)Math.ceil(Math.sqrt(totalButtons));
+            int totalButtons = numGames + 1; // +1 für Quit
+
+            // Dynamische Spaltenzahl: maximal 4, mindestens 1
+            int cols = Math.min(4, totalButtons);
             int rows = (int)Math.ceil((double)totalButtons / cols);
 
             JPanel buttonPanel = new JPanel(new GridLayout(rows, cols, 40, 40));

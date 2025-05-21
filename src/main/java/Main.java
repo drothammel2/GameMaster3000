@@ -3,6 +3,7 @@ import games.Tetris.Tetris;
 import games.Mario.Mario;
 import games.Dummy1.Dummy1;
 import games.Dummy2.Dummy2;
+import games.MonkeyType.MonkeyType;
 
 public class Main {
     public static void main(String[] args) {
@@ -26,6 +27,9 @@ public class Main {
                         break;
                     case "Dummy2":
                         Dummy2.start();
+                        break;
+                    case "MonkeyType":
+                        MonkeyType.start();
                         break;
                     case "Quit":
                         System.exit(0);

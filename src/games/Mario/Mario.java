@@ -68,6 +68,11 @@ public class Mario extends JFrame {
         });
     }
 
+    public static void showLevelSelection() {
+        // Starte das Mario-Hauptmenü oder die Levelauswahl neu
+        Mario.start();
+    }
+
     public static void main(String[] args) {
         start();
     }

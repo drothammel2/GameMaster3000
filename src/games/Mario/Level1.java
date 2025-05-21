@@ -1,9 +1,11 @@
 package games.Mario;
 
 import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 
 public class Level1 extends JFrame {
+    private JDialog pauseDialog;
 
     public Level1() {
         // Fenster-Einstellungen
@@ -22,7 +24,7 @@ public class Level1 extends JFrame {
                 super.paintComponent(g);
 
                 // Hintergrundbild
-                 ImageIcon backgroundIcon = new ImageIcon(getClass().getResource("/games/Mario/background.jpg")); // Hintergrundbild laden
+                ImageIcon backgroundIcon = new ImageIcon(getClass().getResource("/games/Mario/background.jpg")); // Hintergrundbild laden
                 if (backgroundIcon.getImage() != null) {
                     Image backgroundImage = backgroundIcon.getImage();
                     g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null); // Hintergrund zuerst zeichnen
@@ -48,6 +50,50 @@ public class Level1 extends JFrame {
         };
 
         add(levelPanel); // Panel zum Fenster hinzufügen
+        setupPauseListener();
+    }
+
+    private void setupPauseListener() {
+        setFocusable(true);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    showPauseMenu();
+                }
+            }
+        });
+    }
+
+    private void showPauseMenu() {
+        if (pauseDialog != null && pauseDialog.isShowing()) return;
+
+        JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        pauseDialog = new JDialog(topFrame, "Pause", true);
+        pauseDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        pauseDialog.setSize(300, 150);
+        pauseDialog.setLocationRelativeTo(this);
+
+        JPanel panel = new JPanel();
+        JButton resumeButton = new JButton("Fortsetzen");
+        JButton quitButton = new JButton("Spiel beenden");
+
+        resumeButton.addActionListener(e -> {
+            pauseDialog.dispose();
+            requestFocusInWindow();
+        });
+
+        quitButton.addActionListener(e -> {
+            pauseDialog.dispose();
+            // Fenster explizit schließen
+            Level1.this.dispose();
+            games.Mario.Mario.start(); // Zeige das Mario-Hauptmenü
+        });
+
+        panel.add(resumeButton);
+        panel.add(quitButton);
+        pauseDialog.add(panel);
+        pauseDialog.setVisible(true);
     }
 
     public static void start() {

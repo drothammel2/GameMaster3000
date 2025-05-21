@@ -33,18 +33,15 @@ public class Window {
             label.setFont(new Font("Arial", Font.BOLD, 48));
 
             int numGames = gameNames.size();
-            // Dynamische Berechnung der Grid-Größe (quadratisch oder rechteckig)
             int cols = (int)Math.ceil(Math.sqrt(numGames));
             int rows = (int)Math.ceil((double)numGames / cols);
 
             JPanel buttonPanel = new JPanel(new GridLayout(rows, cols, 40, 40));
             buttonPanel.setOpaque(false);
 
-            // Button-Größe dynamisch anpassen
             Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
             int buttonWidth = (screenSize.width - (cols + 1) * 40) / cols;
-            int buttonHeight = (screenSize.height - 200 - (rows + 1) * 40) / rows; // 200 für Label und Rand
-
+            int buttonHeight = (screenSize.height - 200 - (rows + 1) * 40) / rows;
             int fontSize = Math.min(buttonWidth, buttonHeight) / 8 + 18;
 
             for (String gameName : gameNames) {

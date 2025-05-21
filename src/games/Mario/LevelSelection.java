@@ -11,8 +11,8 @@ public class LevelSelection extends JFrame {
         // Fenster-Einstellungen
         setTitle("Levelauswahl");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(400, 300);
-        setLocationRelativeTo(null); // Fenster zentrieren
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Windowed Fullscreen
+        setUndecorated(true); // Entfernt Fensterrahmen
         setResizable(false);
 
         // Layout und Komponenten
@@ -23,12 +23,9 @@ public class LevelSelection extends JFrame {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
 
         JButton level1Button = new JButton("Level 1");
-        level1Button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(LevelSelection.this, "Level 1 wird gestartet...");
-                // Hier könnte die Logik für Level 1 aufgerufen werden
-            }
+        level1Button.addActionListener(e -> {
+            dispose(); // Schließt das Levelauswahl-Fenster
+            Level1.start(); // Startet die Overworld
         });
 
         JButton level2Button = new JButton("Level 2");

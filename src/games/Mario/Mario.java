@@ -21,8 +21,8 @@ public class Mario extends JFrame {
 
         // Bild hinzufügen
         JLabel imageLabel = new JLabel();
-        ImageIcon marioIcon = new ImageIcon(getClass().getResource("/Mario/mario.png")); // Korrigierter relativer Pfad
-        Image scaledImage = marioIcon.getImage().getScaledInstance(200, 150, Image.SCALE_SMOOTH); // Bild skalieren
+        ImageIcon marioIcon = new ImageIcon(getClass().getResource("/games/Mario/mario.png")); // Korrigierter relativer Pfad
+        Image scaledImage = marioIcon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH); // Bild auf 50x50 skalieren
         imageLabel.setIcon(new ImageIcon(scaledImage));
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 

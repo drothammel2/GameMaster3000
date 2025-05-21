@@ -1,55 +1,75 @@
 package games.Mario;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.*;            // KeyAdapter, KeyEvent
 import javax.swing.*;
 
 public class Level1 extends JFrame {
     private JDialog pauseDialog;
+    private Engine engine;  // neu
 
     public Level1() {
-        // Fenster-Einstellungen
         setTitle("Level 1 - Overworld");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Windowed Fullscreen
-        setUndecorated(true); // Entfernt Fensterrahmen
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setUndecorated(true);
         setResizable(false);
 
-        System.out.println("Level1 wird im Windowed Fullscreen gestartet."); // Debug-Ausgabe
+        System.out.println("Level1 wird im Windowed Fullscreen gestartet.");
 
-        // Panel für das Level
         JPanel levelPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+                int w = getWidth(), h = getHeight();
+                int bs = engine.getBLOCK_SIZE();
+                int ox = engine.getOffsetX();
+                int groundY = h - bs;
 
-                // Hintergrundbild
-                ImageIcon backgroundIcon = new ImageIcon(getClass().getResource("/games/Mario/background.jpg")); // Hintergrundbild laden
-                if (backgroundIcon.getImage() != null) {
-                    Image backgroundImage = backgroundIcon.getImage();
-                    g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null); // Hintergrund zuerst zeichnen
-                } else {
-                    System.err.println("Fehler: Bild 'background.jpg' konnte nicht geladen werden.");
-                }
+                // Himmel
+                g.setColor(new Color(135,206,235));
+                g.fillRect(0,0,w,h);
 
-                // Boden mit Blöcken
-                ImageIcon blockIcon = new ImageIcon(getClass().getResource("/games/Mario/overworldblock.png")); // Block-Bild laden
-                if (blockIcon.getImage() != null) {
-                    Image blockImage = blockIcon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH); // Block skalieren
-
-                    // Zeichne die Bodenblöcke in einer Reihe am unteren Rand
-                    int blockHeight = 50; // Höhe des Blocks
-                    int blockY = getHeight() - blockHeight; // Y-Position der Bodenreihe
-                    for (int x = 0; x < getWidth(); x += 50) {
-                        g.drawImage(blockImage, x, blockY, null); // Blöcke über dem Hintergrund zeichnen
+                // Boden mit Löchern
+                for (int bx = 0; bx < engine.getLEVEL_LENGTH()*bs; bx += bs) {
+                    int bi = bx/bs;
+                    boolean hole = false;
+                    for (int[] ho : engine.getHoles()) {
+                        if (bi >= ho[0] && bi < ho[0] + ho[1]) { hole = true; break; }
                     }
-                } else {
-                    System.err.println("Fehler: Bild 'overworldblock.png' konnte nicht geladen werden.");
+                    if (hole) continue;
+                    int sx = bx - ox;
+                    if (sx+bs<0||sx>w) continue;
+                    g.setColor(new Color(139,69,19));
+                    g.fillRect(sx, groundY, bs, bs);
+                    g.setColor(new Color(34,139,34));
+                    g.fillRect(sx, groundY, bs, bs/4);
                 }
+
+                // Plattformen
+                for (int[] p : engine.getPlatforms()) {
+                    int startX = p[0]*bs - ox;
+                    int platY   = groundY - p[1]*bs;
+                    for (int i = 0; i < p[2]; i++) {
+                        int x = startX + i*bs;
+                        if (x+bs<0||x>w) continue;
+                        g.setColor(new Color(139,69,19));
+                        g.fillRect(x, platY, bs, bs);
+                        g.setColor(new Color(34,139,34));
+                        g.fillRect(x, platY, bs, bs/4);
+                    }
+                }
+
+                // Spieler
+                int px = w/2 - engine.getPLAYER_WIDTH()/2;
+                int py = groundY - engine.getPLAYER_HEIGHT() + engine.getPlayerOffsetY();
+                g.setColor(Color.RED);
+                g.fillRect(px, py, engine.getPLAYER_WIDTH(), engine.getPLAYER_HEIGHT());
             }
         };
 
-        add(levelPanel); // Panel zum Fenster hinzufügen
+        engine = new Engine(levelPanel);  // statt eigener Bewegung und Timer
+        add(levelPanel);
         setupPauseListener();
     }
 
@@ -100,6 +120,7 @@ public class Level1 extends JFrame {
         SwingUtilities.invokeLater(() -> {
             Level1 level1 = new Level1();
             level1.setVisible(true);
+            ((JPanel)level1.getContentPane().getComponent(0)).requestFocusInWindow();
         });
     }
 }

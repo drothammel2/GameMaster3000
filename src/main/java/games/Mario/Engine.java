@@ -1,7 +1,17 @@
 package games.Mario;
 
-import java.awt.event.*;           // KeyAdapter, KeyEvent, ActionListener
-import javax.swing.*;              // JPanel, Timer, JDialog, JButton, JFrame, SwingUtilities
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JDialog;              
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 public class Engine {
     private final int BLOCK_SIZE   = 50;
@@ -17,24 +27,36 @@ public class Engine {
     private boolean onGround   = true;
     private boolean movingLeft, movingRight;
 
-    // Plattformen: {StartBlockX, HöheInBlöcken, LängeInBlöcken}
-    private final int[][] platforms = {
+    private static final int[][] DEFAULT_PLATFORMS = {
         {  5,1,4},{ 12,2,3},{ 20,1,5},{ 30,3,2},
         { 45,1,3},{ 55,2,4},{ 65,1,6},{ 75,2,3},
         { 85,1,5},{ 95,3,4},{105,1,8},{115,2,5},
         {125,1,4},{135,3,5},{145,2,4},{155,1,6},
         {165,2,3},{175,1,5},{185,3,4},{195,2,2}
     };
-    // Boden-Löcher: {StartBlock, Länge}
-    private final int[][] holes = {
+    private static final int[][] DEFAULT_HOLES = {
         {10,2},{50,3},{120,1}
     };
+    private int[][] platforms;
+    private int[][] holes;
 
     private final JPanel panel;      // neu: Panel‐Referenz
     private JDialog pauseDialog;     // neu: Pause‐Dialog
+    private Image playerImage;
 
     public Engine(JPanel panel) {
-        this.panel = panel;          // Panel speichern
+        this(panel, DEFAULT_PLATFORMS, DEFAULT_HOLES);
+    }
+
+    public Engine(JPanel panel, int[][] platforms, int[][] holes) {
+        // Instanzvariablen setzen
+        this.platforms = platforms;
+        this.holes     = holes;
+        this.panel     = panel;
+        // Spielerbild laden und auf Spielergröße skalieren
+        ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Player.png"));
+        playerImage = icon.getImage()
+                          .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
         panel.addKeyListener(new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e){ handleKey(e, true); }
             @Override public void keyReleased(KeyEvent e){ handleKey(e, false); }
@@ -162,5 +184,14 @@ public class Engine {
         pnl.add(quit);
         pauseDialog.add(pnl);
         pauseDialog.setVisible(true);
+    }
+
+    // neu: Player-Bild zeichnen
+    public void drawPlayer(Graphics g, int w, int h) {
+        int bs      = BLOCK_SIZE;
+        int groundY = h - bs;
+        int px      = w/2 - PLAYER_WIDTH/2;
+        int py      = groundY - PLAYER_HEIGHT + playerOffsetY;
+        g.drawImage(playerImage, px, py, PLAYER_WIDTH, PLAYER_HEIGHT, null);
     }
 }

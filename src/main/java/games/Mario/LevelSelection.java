@@ -29,12 +29,9 @@ public class LevelSelection extends JFrame {
         });
 
         JButton level2Button = new JButton("Level 2");
-        level2Button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(LevelSelection.this, "Level 2 wird gestartet...");
-                // Hier könnte die Logik für Level 2 aufgerufen werden
-            }
+        level2Button.addActionListener(e -> {
+            dispose();             // Schließe Auswahl
+            Level2.start();        // Starte Level 2
         });
 
         JButton backButton = new JButton("Zurück");

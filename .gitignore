@@ -5,3 +5,6 @@
 /.vscode/
 /target/
 /**/target/
+# ignore all Maven/Gradle build folders
+target/
+**/target/

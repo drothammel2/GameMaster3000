@@ -2,16 +2,19 @@ package games.Mario;
 
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;              
-import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.JDialog;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import games.Mario.Mario;
 
 public class Engine {
     private final int BLOCK_SIZE   = 50;
@@ -27,36 +30,22 @@ public class Engine {
     private boolean onGround   = true;
     private boolean movingLeft, movingRight;
 
-    private static final int[][] DEFAULT_PLATFORMS = {
-        {  5,1,4},{ 12,2,3},{ 20,1,5},{ 30,3,2},
-        { 45,1,3},{ 55,2,4},{ 65,1,6},{ 75,2,3},
-        { 85,1,5},{ 95,3,4},{105,1,8},{115,2,5},
-        {125,1,4},{135,3,5},{145,2,4},{155,1,6},
-        {165,2,3},{175,1,5},{185,3,4},{195,2,2}
-    };
-    private static final int[][] DEFAULT_HOLES = {
-        {10,2},{50,3},{120,1}
-    };
-    private int[][] platforms;
-    private int[][] holes;
-
-    private final JPanel panel;      // neu: Panel‐Referenz
-    private JDialog pauseDialog;     // neu: Pause‐Dialog
+    private JDialog pauseDialog;
+    private final JPanel panel;
+    private final LevelBehavior level;
     private Image playerImage;
 
+    // Ein-Argument-Konstruktor für Standard-Level
     public Engine(JPanel panel) {
-        this(panel, DEFAULT_PLATFORMS, DEFAULT_HOLES);
+        this(panel, new Level1());
     }
 
-    public Engine(JPanel panel, int[][] platforms, int[][] holes) {
+    public Engine(JPanel panel, LevelBehavior level) {
         // Instanzvariablen setzen
-        this.platforms = platforms;
-        this.holes     = holes;
-        this.panel     = panel;
-        // Spielerbild laden und auf Spielergröße skalieren
-        ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Player.png"));
-        playerImage = icon.getImage()
-                          .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
+        this.panel = panel;
+        this.level = level;
+        loadPlayerImage();
+
         panel.addKeyListener(new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e){ handleKey(e, true); }
             @Override public void keyReleased(KeyEvent e){ handleKey(e, false); }
@@ -79,6 +68,12 @@ public class Engine {
         }
     }
 
+    private void loadPlayerImage() {
+        ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Player.png"));
+        playerImage = icon.getImage()
+                          .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
+    }
+
     public void update(int w, int h) {
         int groundY = h - BLOCK_SIZE;
         // horizontal scrollen
@@ -93,14 +88,14 @@ public class Engine {
             if(playerOffsetY == 0) {
                 // Bodenunterstützung (Löcher) prüfen
                 boolean overHole = false;
-                for(int[] hole : holes) {
+                for(int[] hole : level.getHoles()) {
                     if(bi >= hole[0] && bi < hole[0] + hole[1]) { overHole = true; break; }
                 }
                 support = !overHole;
             } else {
                 // Plattformunterstützung prüfen
                 int playerY = groundY + playerOffsetY;
-                for(int[] p : platforms) {
+                for(int[] p : level.getPlatforms()) {
                     int platTop = groundY - p[1] * BLOCK_SIZE;
                     int sx = p[0] * BLOCK_SIZE - offsetX;
                     int ex = sx + p[2] * BLOCK_SIZE;
@@ -125,7 +120,7 @@ public class Engine {
             int px = w/2 - PLAYER_WIDTH/2;
             int bi = (offsetX + px)/BLOCK_SIZE;
             boolean overHole = false;
-            for(int[] hole: holes) {
+            for(int[] hole: level.getHoles()) {
                 if(bi>=hole[0] && bi<hole[0]+hole[1]) { overHole = true; break; }
             }
             if(!overHole) { playerOffsetY=0; playerVelocityY=0; onGround=true; }
@@ -135,7 +130,7 @@ public class Engine {
             int playerBottom = groundY + playerOffsetY;
             int prevBottom   = playerBottom - playerVelocityY;
             int px = w/2 - PLAYER_WIDTH/2;
-            for(int[] p: platforms) {
+            for(int[] p: level.getPlatforms()) {
                 int platTop = groundY - p[1]*BLOCK_SIZE;
                 int sx      = p[0]*BLOCK_SIZE - offsetX;
                 int ex      = sx + p[2]*BLOCK_SIZE;
@@ -147,17 +142,29 @@ public class Engine {
                 }
             }
         }
+        // Item-Kollision prüfen und ggf. Power-Up anwenden
+        level.updateItems(this, w, h);
+        respawnIfFallenBelow(w, h);
     }
 
-    // Getter für Level1.paintComponent()
-    public int getOffsetX() { return offsetX; }
-    public int getPlayerOffsetY() { return playerOffsetY; }
-    public int getBLOCK_SIZE() { return BLOCK_SIZE; }
-    public int getLEVEL_LENGTH() { return LEVEL_LENGTH; }
-    public int[][] getPlatforms() { return platforms; }
-    public int[][] getHoles() { return holes; }
-    public int getPLAYER_WIDTH() { return PLAYER_WIDTH; }
-    public int getPLAYER_HEIGHT(){ return PLAYER_HEIGHT; }
+    private void respawnIfFallenBelow(int w, int h) {
+        if ((h - BLOCK_SIZE) + playerOffsetY > h) {
+            offsetX         = 0;
+            playerOffsetY   = 0;
+            playerVelocityY = 0;
+            onGround        = true;
+        }
+    }
+
+    // Getter für Level‐Painting
+    public int[][] getPlatforms() { return level.getPlatforms(); }
+    public int[][] getHoles()     { return level.getHoles(); }
+    public int   getBLOCK_SIZE()  { return BLOCK_SIZE; }
+    public int   getLEVEL_LENGTH(){ return LEVEL_LENGTH; }
+    public int   getPLAYER_WIDTH(){ return PLAYER_WIDTH; }
+    public int   getPLAYER_HEIGHT(){ return PLAYER_HEIGHT; }
+    public int   getOffsetX()     { return offsetX; }
+    public int   getPlayerOffsetY(){ return playerOffsetY; }
 
     // neu: Pause‐Dialog erstellen und anzeigen
     private void showPauseMenu() {
@@ -193,5 +200,20 @@ public class Engine {
         int px      = w/2 - PLAYER_WIDTH/2;
         int py      = groundY - PLAYER_HEIGHT + playerOffsetY;
         g.drawImage(playerImage, px, py, PLAYER_WIDTH, PLAYER_HEIGHT, null);
+    }
+
+    // Items zeichnen
+    public void drawItems(Graphics g) {
+        // Items übernimmt jetzt das Level selbst
+        level.drawItems(g);
+    }
+
+    // neu: Wechsel zu Fire-Mario
+    public void applyFireMario() {
+        System.out.println("Power-Up: Fire Mario aktiviert");
+        ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Feuermario.png"));
+        playerImage = icon.getImage()
+                          .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
+        panel.repaint(); // sofort neu zeichnen
     }
 }

@@ -84,6 +84,7 @@ public class Level2 extends JFrame implements LevelBehavior {
                 // Spieler
                 engine.drawPlayer(g, w, h);
                 engine.drawItems(g);
+                engine.drawFireballs(g, w, h);
             }
         };
 

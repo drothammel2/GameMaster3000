@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import games.Mario.Engine;
-import games.Mario.LevelBehavior;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -86,7 +84,8 @@ public class Level1 extends JFrame implements LevelBehavior {
 
                 // Spieler
                 engine.drawItems(g);
-                engine.drawPlayer(g, w, h);
+                engine.drawFireballs(g, getWidth(), getHeight());
+                engine.drawPlayer(g, getWidth(), getHeight());
             }
         };
 

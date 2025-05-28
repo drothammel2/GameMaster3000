@@ -2,19 +2,19 @@ package games.Mario;
 
 import java.awt.Graphics;
 import java.awt.Image;
-import java.awt.Rectangle;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import javax.swing.ImageIcon;
-import javax.swing.JPanel;
-import javax.swing.Timer;
-import javax.swing.JDialog;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import games.Mario.Mario;
+import javax.swing.Timer;
 
 public class Engine {
     private final int BLOCK_SIZE   = 50;
@@ -29,11 +29,17 @@ public class Engine {
     private int playerVelocityY= 0;
     private boolean onGround   = true;
     private boolean movingLeft, movingRight;
+    private boolean fireMode = false;               // neu: Feuer-Modus aktiv?
+    // neu: Fireball-Spam verhindern
+    private long lastFireTime = 0;
+    private static final int FIRE_COOLDOWN = 500; // Millisekunden
+    private boolean facingLeft = false;  // neu: Blickrichtung
 
     private JDialog pauseDialog;
     private final JPanel panel;
     private final LevelBehavior level;
     private Image playerImage;
+    private final List<Fireball> fireballs = new ArrayList<>();
 
     // Ein-Argument-Konstruktor für Standard-Level
     public Engine(JPanel panel) {
@@ -57,10 +63,25 @@ public class Engine {
 
     private void handleKey(KeyEvent e, boolean press) {
         switch(e.getKeyCode()) {
-            case KeyEvent.VK_RIGHT: movingRight = press; break;
-            case KeyEvent.VK_LEFT:  movingLeft  = press; break;
+            case KeyEvent.VK_LEFT:
+                movingLeft  = press;
+                if (press) facingLeft = true;
+                break;
+            case KeyEvent.VK_RIGHT:
+                movingRight = press;
+                if (press) facingLeft = false;
+                break;
             case KeyEvent.VK_SPACE:
                 if(onGround && press){ playerVelocityY = -20; onGround = false; }
+                break;
+            case KeyEvent.VK_Q:
+                if (fireMode && press) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastFireTime >= FIRE_COOLDOWN) {
+                        spawnFireball(panel.getWidth(), panel.getHeight());
+                        lastFireTime = now;
+                    }
+                }
                 break;
             case KeyEvent.VK_ESCAPE:           // neu: ESC für Pause‐Menü
                 if (press) showPauseMenu();
@@ -72,6 +93,41 @@ public class Engine {
         ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Player.png"));
         playerImage = icon.getImage()
                           .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
+    }
+
+    private void spawnFireball(int w, int h) {
+        int screenPx = w/2 - PLAYER_WIDTH/2;
+        int worldX = offsetX + screenPx;
+        // Spieler-Welt-Y ermitteln (Boden minus Mario-Höhe plus Offset)
+        int groundY = h - BLOCK_SIZE;
+        int worldY = groundY - PLAYER_HEIGHT + playerOffsetY;
+        // Schussrichtung je nach Blickrichtung
+        int vx = facingLeft ? -MOVE_STEP : MOVE_STEP;
+        int initialVy = -10;  // weniger steiler Start
+        fireballs.add(new Fireball(worldX, worldY, vx, initialVy));
+    }
+
+    private void updateFireballs(int w, int h) {
+        int groundY = h - BLOCK_SIZE;  // Y-Koordinate Oberkante Boden
+        Iterator<Fireball> it = fireballs.iterator();
+        while(it.hasNext()) {
+            Fireball f = it.next();
+            f.update();
+            // Bodenkollision und Abprallen
+            if (f.getY() > groundY - Fireball.SIZE) {
+                f.bounce(groundY);
+            }
+            // Entfernen, wenn aus dem Bild oder Flugdistanz überschritten
+            if (f.isOffscreen(offsetX, w) || f.exceededDistance()) {
+                it.remove();
+            }
+        }
+    }
+
+    public void drawFireballs(Graphics g, int w, int h) {
+        for (Fireball f : fireballs) {
+            f.draw(g, offsetX);
+        }
     }
 
     public void update(int w, int h) {
@@ -144,6 +200,7 @@ public class Engine {
         }
         // Item-Kollision prüfen und ggf. Power-Up anwenden
         level.updateItems(this, w, h);
+        updateFireballs(w, h);
         respawnIfFallenBelow(w, h);
     }
 
@@ -199,7 +256,15 @@ public class Engine {
         int groundY = h - bs;
         int px      = w/2 - PLAYER_WIDTH/2;
         int py      = groundY - PLAYER_HEIGHT + playerOffsetY;
-        g.drawImage(playerImage, px, py, PLAYER_WIDTH, PLAYER_HEIGHT, null);
+        if (facingLeft) {
+            // gespiegelt zeichnen
+            g.drawImage(playerImage,
+                px + PLAYER_WIDTH, py,
+                -PLAYER_WIDTH, PLAYER_HEIGHT,
+                null);
+        } else {
+            g.drawImage(playerImage, px, py, PLAYER_WIDTH, PLAYER_HEIGHT, null);
+        }
     }
 
     // Items zeichnen
@@ -210,10 +275,11 @@ public class Engine {
 
     // neu: Wechsel zu Fire-Mario
     public void applyFireMario() {
-        System.out.println("Power-Up: Fire Mario aktiviert");
-        ImageIcon icon = new ImageIcon(getClass().getResource("/games/Mario/Feuermario.png"));
+        fireMode = true;
+        ImageIcon icon = new ImageIcon(getClass()
+            .getResource("/games/Mario/Feuermario.png"));
         playerImage = icon.getImage()
                           .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
-        panel.repaint(); // sofort neu zeichnen
+        panel.repaint();
     }
 }

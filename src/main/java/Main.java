@@ -4,6 +4,8 @@ import games.Mario.Mario;
 import games.Dummy1.Dummy1;
 import games.Dummy2.Dummy2;
 import games.MonkeyType.MonkeyType;
+import games.AimTrainer.AimTrainer;
+import games.Speedrun.Speedrun;
 
 public class Main {
     public static void main(String[] args) {
@@ -30,6 +32,12 @@ public class Main {
                         break;
                     case "MonkeyType":
                         MonkeyType.start();
+                        break;
+                    case "AimTrainer":
+                        AimTrainer.start();
+                        break;
+                    case "Speedrun":
+                        Speedrun.start();
                         break;
                     case "Quit":
                         System.exit(0);

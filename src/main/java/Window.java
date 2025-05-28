@@ -19,7 +19,7 @@ public class Window {
 
     public static void startMainscreen(GameSelectionListener listener) {
         // MonkeyType zur Liste hinzufügen!
-        startMainscreen(listener, Arrays.asList("Mario", "Snake", "Tetris", "Dummy1", "Dummy2", "MonkeyType"));
+        startMainscreen(listener, Arrays.asList("Mario", "Snake", "Tetris", "Dummy1", "Dummy2", "MonkeyType", "AimTrainer", "Speedrun"));
     }
 
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {

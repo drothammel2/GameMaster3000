@@ -1,1 +1,0 @@
-Dummy-Datei für Gras-Sprite. Ersetze diese Datei durch ein echtes Sprite, wenn verfügbar.

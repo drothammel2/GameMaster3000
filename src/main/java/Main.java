@@ -1,11 +1,10 @@
-import games.Snake.Snake;
-import games.Tetris.Tetris;
-import games.Mario.Mario;
 import games.Dummy1.Dummy1;
 import games.Dummy2.Dummy2;
+import games.Mario.Mario;
 import games.MonkeyType.MonkeyType;
-import games.AimTrainer.AimTrainer;
+import games.Snake.Snake;
 import games.Speedrun.Speedrun;
+import games.Tetris.Tetris;
 
 public class Main {
     public static void main(String[] args) {
@@ -32,9 +31,6 @@ public class Main {
                         break;
                     case "MonkeyType":
                         MonkeyType.start();
-                        break;
-                    case "AimTrainer":
-                        AimTrainer.start();
                         break;
                     case "Speedrun":
                         Speedrun.start();

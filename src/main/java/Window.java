@@ -17,6 +17,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.BasicStroke;
+import javax.swing.JOptionPane;
 
 public class Window {
 
@@ -25,6 +26,35 @@ public class Window {
     }
 
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {
+        // Spieler-Auswahl vor dem Hauptmenü
+        selectPlayerDialog(() -> showGameMenu(listener, gameNames));
+    }
+
+    private static void selectPlayerDialog(Runnable onSelected) {
+        SwingUtilities.invokeLater(() -> {
+            List<String> players = Players.getAllPlayerNames();
+            String[] options = players.toArray(new String[0]);
+            String name = (String) JOptionPane.showInputDialog(
+                null,
+                "Spieler auswählen oder neuen Namen eingeben:",
+                "Spieler-Auswahl",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options.length > 0 ? options[0] : ""
+            );
+            if (name == null || name.trim().isEmpty()) {
+                name = JOptionPane.showInputDialog(null, "Neuen Spielernamen eingeben:", "Neuer Spieler", JOptionPane.PLAIN_MESSAGE);
+                if (name == null || name.trim().isEmpty()) {
+                    System.exit(0);
+                }
+            }
+            Players.setCurrentPlayer(name.trim());
+            onSelected.run();
+        });
+    }
+
+    private static void showGameMenu(GameSelectionListener listener, List<String> gameNames) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("GameMaster3000");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

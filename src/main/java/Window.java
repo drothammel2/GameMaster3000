@@ -272,7 +272,7 @@ public class Window {
 
     // Alternative startMainscreen-Methode mit voreingestellten Spielen (unverändert)
     public static void startMainscreen(GameSelectionListener listener) {
-        startMainscreen(listener, Arrays.asList("Mario", "Snake", "Tetris", "Dummy1", "Dummy2", "MonkeyType"));
+        startMainscreen(listener, Arrays.asList("Mario", "MonkeyType", "Snake", "Speedrun", "Snake", "Tetris"));
     }
     
 }

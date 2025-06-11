@@ -9,7 +9,7 @@ import games.Speedrun.Speedrun;
 
 public class Main {
     public static void main(String[] args) {
-
+        
         Window.startMainscreen(new Window.GameSelectionListener() {
         
             @Override

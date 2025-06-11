@@ -10,7 +10,7 @@ public class Tetris {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Tetris");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setSize(400, 800);
+            frame.setSize(420, 820);
             frame.setLocationRelativeTo(null);
             frame.setResizable(false);
             frame.add(new TetrisPanel());
@@ -22,35 +22,91 @@ public class Tetris {
 class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     private final int ROWS = 20;
     private final int COLS = 10;
-    private final int TILE = 30;
+    private final int TILE = 32;
+    private final int SIDE_PANEL = 120;
     private final Color[] COLORS = {
-        Color.BLACK, Color.CYAN, Color.BLUE, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.RED
+        new Color(0,0,0,0), // 0: transparent/empty
+        new Color(0, 255, 255),    // I - Cyan
+        new Color(0, 0, 255),      // J - Blue
+        new Color(255, 140, 0),    // L - Orange
+        new Color(255, 255, 0),    // O - Yellow
+        new Color(0, 255, 0),      // S - Green
+        new Color(160, 0, 240),    // T - Purple
+        new Color(255, 0, 0)       // Z - Red
+    };
+
+    private final Color[] SHINY_COLORS = {
+        new Color(0,0,0,0),
+        new Color(0, 255, 255, 220),
+        new Color(0, 0, 255, 220),
+        new Color(255, 140, 0, 220),
+        new Color(255, 255, 0, 220),
+        new Color(0, 255, 0, 220),
+        new Color(160, 0, 240, 220),
+        new Color(255, 0, 0, 220)
     };
 
     private Timer timer;
     private int[][] board = new int[ROWS][COLS];
     private Tetromino current;
+    private Tetromino next;
     private int curRow, curCol;
     private boolean gameOver = false;
     private int score = 0;
+    private int highscore = 0;
+    private int linesCleared = 0;
+    private int level = 1;
+    private int dropDelay = 400;
+    private boolean softDrop = false;
+    private boolean hardDropAnim = false;
+    private int hardDropY = -1;
+    private int hardDropAnimFrames = 0;
 
     public TetrisPanel() {
-        setPreferredSize(new Dimension(COLS * TILE, ROWS * TILE));
-        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(COLS * TILE + SIDE_PANEL, ROWS * TILE));
+        setBackground(new Color(30, 30, 40));
         setFocusable(true);
         addKeyListener(this);
-        timer = new Timer(400, this);
+        loadHighscore();
+        timer = new Timer(dropDelay, this);
         spawnTetromino();
         timer.start();
     }
 
+    private void loadHighscore() {
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
+            if (java.nio.file.Files.exists(path)) {
+                String s = java.nio.file.Files.readAllLines(path).get(0);
+                highscore = Integer.parseInt(s.trim());
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void saveHighscore() {
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
+            java.nio.file.Files.write(path, String.valueOf(highscore).getBytes());
+        } catch (Exception ignored) {}
+    }
+
     private void spawnTetromino() {
-        current = Tetromino.randomTetromino();
+        if (next == null) {
+            current = Tetromino.randomTetromino();
+            next = Tetromino.randomTetromino();
+        } else {
+            current = next;
+            next = Tetromino.randomTetromino();
+        }
         curRow = 0;
         curCol = COLS / 2 - 2;
         if (!canMove(current.shape, curRow, curCol)) {
             gameOver = true;
             timer.stop();
+            if (score > highscore) {
+                highscore = score;
+                saveHighscore();
+            }
         }
     }
 
@@ -81,6 +137,7 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     }
 
     private void clearLines() {
+        int lines = 0;
         for (int r = ROWS - 1; r >= 0; r--) {
             boolean full = true;
             for (int c = 0; c < COLS; c++) {
@@ -96,9 +153,16 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
                 for (int c = 0; c < COLS; c++) {
                     board[0][c] = 0;
                 }
-                score += 100;
+                score += 100 * level;
+                lines++;
+                linesCleared++;
                 r++; // check same row again
             }
+        }
+        if (lines > 0) {
+            level = 1 + linesCleared / 10;
+            dropDelay = Math.max(60, 400 - (level - 1) * 30);
+            timer.setDelay(dropDelay);
         }
     }
 
@@ -106,10 +170,27 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // Draw board
+        // Draw board background
+        g.setColor(new Color(40, 40, 60));
+        g.fillRoundRect(0, 0, COLS * TILE, ROWS * TILE, 16, 16);
+
+        // Draw board tiles
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
-                drawTile(g, board[r][c], c * TILE, r * TILE);
+                drawTile(g, board[r][c], c * TILE, r * TILE, false, false);
+            }
+        }
+
+        // Draw shadow (ghost piece)
+        if (!gameOver) {
+            int ghostRow = curRow;
+            while (canMove(current.shape, ghostRow + 1, curCol)) ghostRow++;
+            for (int r = 0; r < current.shape.length; r++) {
+                for (int c = 0; c < current.shape[0].length; c++) {
+                    if (current.shape[r][c] != 0) {
+                        drawTile(g, current.color, (curCol + c) * TILE, (ghostRow + r) * TILE, true, false);
+                    }
+                }
             }
         }
 
@@ -118,23 +199,22 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
             for (int r = 0; r < current.shape.length; r++) {
                 for (int c = 0; c < current.shape[0].length; c++) {
                     if (current.shape[r][c] != 0) {
-                        drawTile(g, current.color, (curCol + c) * TILE, (curRow + r) * TILE);
+                        boolean anim = hardDropAnim && (curRow + r) == hardDropY;
+                        drawTile(g, current.color, (curCol + c) * TILE, (curRow + r) * TILE, false, anim);
                     }
                 }
             }
         }
 
         // Draw grid
-        g.setColor(Color.DARK_GRAY);
+        g.setColor(new Color(80, 80, 100));
         for (int r = 0; r <= ROWS; r++)
             g.drawLine(0, r * TILE, COLS * TILE, r * TILE);
         for (int c = 0; c <= COLS; c++)
             g.drawLine(c * TILE, 0, c * TILE, ROWS * TILE);
 
-        // Draw score
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Score: " + score, 10, 25);
+        // Draw side panel
+        drawSidePanel(g);
 
         // Draw Game Over
         if (gameOver) {
@@ -150,18 +230,89 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         }
     }
 
-    private void drawTile(Graphics g, int colorIdx, int x, int y) {
+    private void drawTile(Graphics g, int colorIdx, int x, int y, boolean ghost, boolean anim) {
         if (colorIdx == 0) return;
-        g.setColor(COLORS[colorIdx]);
-        g.fillRect(x, y, TILE, TILE);
-        g.setColor(Color.BLACK);
-        g.drawRect(x, y, TILE, TILE);
+        Graphics2D g2 = (Graphics2D) g.create();
+        Color base = SHINY_COLORS[colorIdx];
+        if (ghost) {
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
+        }
+        if (anim) {
+            g2.setColor(base.brighter());
+        } else {
+            g2.setColor(base);
+        }
+        g2.fillRoundRect(x + 2, y + 2, TILE - 4, TILE - 4, 10, 10);
+
+        // Add a highlight for a shiny effect
+        g2.setColor(new Color(255, 255, 255, ghost ? 60 : 120));
+        g2.fillRoundRect(x + 5, y + 5, TILE / 2, TILE / 4, 8, 8);
+
+        // Add a border
+        g2.setColor(base.darker().darker());
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(x + 2, y + 2, TILE - 4, TILE - 4, 10, 10);
+
+        g2.dispose();
+    }
+
+    private void drawSidePanel(Graphics g) {
+        int x = COLS * TILE + 10;
+        int y = 20;
+        g.setColor(new Color(60, 60, 80));
+        g.fillRoundRect(COLS * TILE, 0, SIDE_PANEL, ROWS * TILE, 16, 16);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Score:", x, y + 10);
+        g.setFont(new Font("Arial", Font.BOLD, 22));
+        g.drawString(String.valueOf(score), x, y + 35);
+
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Highscore:", x, y + 65);
+        g.setFont(new Font("Arial", Font.BOLD, 22));
+        g.drawString(String.valueOf(highscore), x, y + 90);
+
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Level: " + level, x, y + 120);
+        g.drawString("Lines: " + linesCleared, x, y + 145);
+
+        // Draw next piece
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Next:", x, y + 180);
+        if (next != null) {
+            int[][] shape = next.shape;
+            int color = next.color;
+            int offsetX = x + 10;
+            int offsetY = y + 200;
+            for (int r = 0; r < shape.length; r++) {
+                for (int c = 0; c < shape[0].length; c++) {
+                    if (shape[r][c] != 0) {
+                        drawTile(g, color, offsetX + c * TILE, offsetY + r * TILE, false, false);
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         if (!gameOver) {
-            if (canMove(current.shape, curRow + 1, curCol)) {
+            if (hardDropAnim) {
+                hardDropAnimFrames--;
+                if (hardDropAnimFrames <= 0) {
+                    hardDropAnim = false;
+                    mergeTetromino();
+                    clearLines();
+                    spawnTetromino();
+                }
+                repaint();
+                return;
+            }
+            if (softDrop && canMove(current.shape, curRow + 1, curCol)) {
+                curRow++;
+                score += 1;
+            } else if (canMove(current.shape, curRow + 1, curCol)) {
                 curRow++;
             } else {
                 mergeTetromino();
@@ -178,7 +329,13 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 board = new int[ROWS][COLS];
                 score = 0;
+                linesCleared = 0;
+                level = 1;
+                dropDelay = 400;
+                timer.setDelay(dropDelay);
                 gameOver = false;
+                current = null;
+                next = null;
                 spawnTetromino();
                 timer.start();
                 repaint();
@@ -188,31 +345,55 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
             }
             return;
         }
+        boolean repaintNeeded = false;
         switch (e.getKeyCode()) {
             case KeyEvent.VK_LEFT:
-                if (canMove(current.shape, curRow, curCol - 1)) curCol--;
+                if (canMove(current.shape, curRow, curCol - 1)) {
+                    curCol--;
+                    repaintNeeded = true;
+                }
                 break;
             case KeyEvent.VK_RIGHT:
-                if (canMove(current.shape, curRow, curCol + 1)) curCol++;
+                if (canMove(current.shape, curRow, curCol + 1)) {
+                    curCol++;
+                    repaintNeeded = true;
+                }
                 break;
             case KeyEvent.VK_DOWN:
-                if (canMove(current.shape, curRow + 1, curCol)) curRow++;
+                softDrop = true;
                 break;
             case KeyEvent.VK_UP:
                 int[][] rotated = current.rotate();
-                if (canMove(rotated, curRow, curCol)) current.shape = rotated;
+                if (canMove(rotated, curRow, curCol)) {
+                    current.shape = rotated;
+                    repaintNeeded = true;
+                }
                 break;
             case KeyEvent.VK_SPACE:
-                while (canMove(current.shape, curRow + 1, curCol)) curRow++;
+                // Hard drop with animation
+                int dropTo = curRow;
+                while (canMove(current.shape, dropTo + 1, curCol)) dropTo++;
+                if (dropTo != curRow) {
+                    hardDropY = dropTo + current.shape.length - 1;
+                    curRow = dropTo;
+                    hardDropAnim = true;
+                    hardDropAnimFrames = 4;
+                    score += 2 * (dropTo - curRow + 1);
+                }
                 break;
             case KeyEvent.VK_ESCAPE:
                 SwingUtilities.getWindowAncestor(this).dispose();
                 break;
         }
-        repaint();
+        if (repaintNeeded) repaint();
     }
 
-    @Override public void keyReleased(KeyEvent e) {}
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+            softDrop = false;
+        }
+    }
     @Override public void keyTyped(KeyEvent e) {}
 }
 

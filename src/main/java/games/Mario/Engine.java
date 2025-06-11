@@ -2,19 +2,22 @@ package games.Mario;
 
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.swing.ImageIcon;
+import javax.swing.ImageIcon;      // neu: Import für Feuerblume
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+
+import games.Mario.Items.Feuerblume;
 
 public class Engine {
     private final int BLOCK_SIZE   = 50;
@@ -154,8 +157,23 @@ public class Engine {
                 for(int[] p : level.getPlatforms()) {
                     int platTop = groundY - p[1] * BLOCK_SIZE;
                     int sx = p[0] * BLOCK_SIZE - offsetX;
-                    int ex = sx + p[2] * BLOCK_SIZE;
-                    if(playerY == platTop && px + PLAYER_WIDTH > sx && px < ex) {
+                    int ex = sx + p[2]*BLOCK_SIZE;
+                    if(playerY == platTop && px+PLAYER_WIDTH>sx && px<ex) {
+                        support = true; break;
+                    }
+                }
+                // schwarz Block-Unterstützung prüfen
+                for(int[] b : level.getBlackBlocks()) {
+                   int pHeight = 0;
+                   for(int[] p : level.getPlatforms()) {
+                       if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
+                           pHeight = p[1];
+                           break;
+                       }
+                   }
+                    int bx = b[0]*BLOCK_SIZE - offsetX;
+                    int blockTop = groundY - (pHeight + 3)*BLOCK_SIZE;
+                    if (playerY == blockTop && px + PLAYER_WIDTH > bx && px < bx + BLOCK_SIZE) {
                         support = true; break;
                     }
                 }
@@ -170,6 +188,37 @@ public class Engine {
         if(!onGround) {
             playerVelocityY += GRAVITY;
             playerOffsetY  += playerVelocityY;
+            // Kopf-Kollision nur in Fireball- oder Item-Absprungphase
+            if (!onGround && playerVelocityY < 0) {
+                int px      = w/2 - PLAYER_WIDTH/2;
+                int prevTop = groundY + playerOffsetY - playerVelocityY;
+                int newTop  = groundY + playerOffsetY;
+
+                for (int[] b : level.getBlackBlocks()) {
+                    int bx = b[0]*BLOCK_SIZE - offsetX;
+                    // Plattform-Höhe
+                    int pHeight = 0;
+                    for (int[] p : level.getPlatforms()) {
+                        if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
+                            pHeight = p[1]; break;
+                        }
+                    }
+                    // Berechne Block-Top-Y
+                    int bs       = BLOCK_SIZE;
+                    int blockTop = groundY - (pHeight + 3)*bs;
+                    if (px+PLAYER_WIDTH>bx && px<bx+BLOCK_SIZE
+                       && prevTop>blockTop + bs && newTop<=blockTop + bs) {
+                        playerVelocityY = -playerVelocityY/2;
+                        playerOffsetY   = (blockTop + bs) - groundY;
+
+                        // Item auf Block-Top platzieren (oberhalb)
+                        int itemX = b[0]*BLOCK_SIZE + bs/2;
+                        int itemY = blockTop - Feuerblume.SIZE;
+                        level.spawnItemAt(itemX, itemY);
+                        break;
+                    }
+                }
+            }
         }
         // Boden-Kollision (außer Löcher)
         if(playerOffsetY > 0) {
@@ -181,21 +230,41 @@ public class Engine {
             }
             if(!overHole) { playerOffsetY=0; playerVelocityY=0; onGround=true; }
         }
-        // Plattform-Kollision beim Fallen
-        if(playerVelocityY>0) {
+        // Plattform-Kollision beim Fallen (Grasblöcke begehbar)
+        if (playerVelocityY > 0) {
             int playerBottom = groundY + playerOffsetY;
             int prevBottom   = playerBottom - playerVelocityY;
             int px = w/2 - PLAYER_WIDTH/2;
-            for(int[] p: level.getPlatforms()) {
-                int platTop = groundY - p[1]*BLOCK_SIZE;
-                int sx      = p[0]*BLOCK_SIZE - offsetX;
-                int ex      = sx + p[2]*BLOCK_SIZE;
-                if(px+PLAYER_WIDTH>sx && px<ex
-                   && prevBottom<platTop && playerBottom>=platTop) {
-                    onGround=true; playerVelocityY=0;
-                    playerOffsetY = platTop - groundY;
+            for (int[] p : level.getPlatforms()) {
+                int platTop = groundY - p[1] * BLOCK_SIZE;
+                int sx      = p[0] * BLOCK_SIZE - offsetX;
+                int ex      = sx + p[2] * BLOCK_SIZE;
+                if (px + PLAYER_WIDTH > sx && px < ex
+                    && prevBottom < platTop && playerBottom >= platTop) {
+                    onGround = true;
+                    playerVelocityY = 0;
+                    playerOffsetY   = platTop - groundY;
                     break;
                 }
+            }
+        }
+        // Kollisions-Handling für schwarze Blöcke nur beim Landen
+        int px = w/2 - PLAYER_WIDTH/2;                       // Spieler-X im Fenster
+        int py = groundY - PLAYER_HEIGHT + playerOffsetY;    // Spieler-Y im Fenster
+        for(int[] b : level.getBlackBlocks()) {
+            int pHeight = 0;
+            for(int[] p : level.getPlatforms()) {
+                if(b[0]>=p[0]&&b[0]<p[0]+p[2]) { pHeight = p[1]; break; }
+            }
+            int bx = b[0]*BLOCK_SIZE;
+            int by = groundY - (pHeight + 3)*BLOCK_SIZE;
+            Rectangle blockRect = new Rectangle(bx, by, BLOCK_SIZE, BLOCK_SIZE);
+            Rectangle nextPlayer = new Rectangle(px, py + playerVelocityY, PLAYER_WIDTH, PLAYER_HEIGHT);
+            if(playerVelocityY>0 && py+PLAYER_HEIGHT<=by && nextPlayer.intersects(blockRect)) {
+                // Offset statt nur py setzen
+                playerOffsetY = by - groundY;
+                playerVelocityY = 0;
+                onGround = true;
             }
         }
         // Item-Kollision prüfen und ggf. Power-Up anwenden

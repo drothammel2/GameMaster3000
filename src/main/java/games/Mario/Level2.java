@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -27,6 +28,10 @@ public class Level2 extends JFrame implements LevelBehavior {
         {  5,1 },{ 10,2 },{ 16,1 },{ 21,2 },
         { 27,1 },{ 31,2 },{ 36,1 },{ 40,2 },
         { 45,1 },{ 50,2 }
+    };
+    // Luft‐Blöcke: {BlockIndex, HöheInBlöcken über Boden}
+    private static final int[][] BLACK_BLOCKS = {
+        {  6,2 }, { 18,3 }, { 30,2 }
     };
 
     public Level2() {
@@ -81,6 +86,15 @@ public class Level2 extends JFrame implements LevelBehavior {
                     }
                 }
 
+                // Luft‐Blöcke
+                g.setColor(Color.BLACK);
+                int baseOffset = BLACK_BLOCKS[0][1];
+                for (int[] b : BLACK_BLOCKS) {
+                    int bx = b[0]*bs - ox;
+                    int by = groundY - (baseOffset + 1)*bs;
+                    g.fillRect(bx, by, bs, bs);
+                }
+
                 // Spieler
                 engine.drawPlayer(g, w, h);
                 engine.drawItems(g);
@@ -101,23 +115,32 @@ public class Level2 extends JFrame implements LevelBehavior {
 
     @Override public int[][] getPlatforms() { return LEVEL2_PLATFORMS; }
     @Override public int[][] getHoles()     { return LEVEL2_HOLES; }
+    @Override
+    public int[][] getBlackBlocks() {
+        return Arrays.stream(BLACK_BLOCKS)
+                     .filter(b -> b[1] >= 2)
+                     .toArray(int[][]::new);
+    }
 
     @Override
-    public void spawnItems(int panelWidth, int panelHeight) {
-        Random rnd = new Random();
-        int bi; boolean inHole;
-        do {
-            bi = rnd.nextInt(engine.getLEVEL_LENGTH());
-            inHole = false;
-            for (int[] ho : LEVEL2_HOLES) {
-                if (bi >= ho[0] && bi < ho[0] + ho[1]) { inHole = true; break; }
-            }
-        } while (inHole);
-        int bx = bi * engine.getBLOCK_SIZE();
-        int groundY = panelHeight - engine.getBLOCK_SIZE();
-        int by = groundY - Feuerblume.SIZE;
+    public void spawnItems(int w, int h) {
+        int bs      = engine.getBLOCK_SIZE();
+        int groundY = h - bs;
+        int[][] blacks = getBlackBlocks();
         items.clear();
-        items.add(new Feuerblume(bx, by));
+        if (blacks.length == 0) return;
+        int[] b = blacks[new Random().nextInt(blacks.length)];
+        int pHeight = 0;
+        for (int[] p : engine.getPlatforms()) {
+            if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
+                pHeight = p[1];
+                break;
+            }
+        }
+        int blockTop = groundY - (pHeight + 3)*bs;
+        int itemX    = b[0]*bs + bs/2;
+        int itemY    = blockTop - Feuerblume.SIZE;
+        items.add(new Feuerblume(itemX, itemY));
     }
 
     @Override
@@ -146,6 +169,11 @@ public class Level2 extends JFrame implements LevelBehavior {
             if (sx + Feuerblume.SIZE < 0 || sx > getWidth()) continue;
             g.drawImage(f.getImage(), sx, sy, null);
         }
+    }
+
+    @Override
+    public void spawnItemAt(int worldX, int worldY) {
+        items.add(new Feuerblume(worldX, worldY));
     }
 
     public static void start() {

@@ -1,0 +1,53 @@
+# Anleitung: Highscore-Speicherung für neue oder bestehende Spiele
+
+Um Highscores für ein Spiel (z.B. Tetris) im GameMaster3000-System zu speichern, sind folgende Schritte in der jeweiligen `Spielname.java` (z.B. `Tetris.java`) notwendig:
+
+## 1. Importiere die Players-Klasse
+Füge am Anfang der Datei hinzu:
+```java
+import players.Players;
+```
+
+## 2. Highscore beim Game Over speichern
+Rufe beim Game Over (also wenn das Spiel beendet ist und der Score feststeht) folgende Methode auf:
+```java
+Players.writeHighscore("Tetris", score);
+```
+- Ersetze `"Tetris"` durch den Namen deines Spiels (wie in der Highscore-Datei, z.B. "Mario", "Snake", "Speedrun", ...).
+- Ersetze `score` durch die Punktzahl, die der aktuelle Spieler erreicht hat (muss ein `int` sein).
+
+**Beispiel:**
+```java
+// ...
+private void onGameOver() {
+    // ...
+    Players.writeHighscore("Tetris", score);
+}
+```
+
+## 3. Optional: Highscore anzeigen
+Um den aktuellen Highscore des Spielers im Spiel anzuzeigen:
+```java
+String highscore = Players.getCurrentPlayer() != null ? Players.getCurrentPlayer().getHighscore("Tetris") : "";
+```
+
+## 4. Hinweise
+- Die Highscores werden pro Spieler gespeichert. Der aktuelle Spieler wird über das Hauptmenü ausgewählt.
+- Die Highscore-Dateien liegen im Ordner `src/main/java/players/` und heißen `<spielername>.txt`.
+- Die Methode `Players.writeHighscore(...)` speichert nur, wenn der neue Score besser ist als der alte.
+
+## 5. Zusammenfassung der nötigen Änderungen
+- Importiere `players.Players`.
+- Schreibe beim Game Over: `Players.writeHighscore("Spielname", score);`
+- (Optional) Zeige den Highscore im Spiel an.
+
+---
+
+**Beispiel für Tetris:**
+```java
+import players.Players;
+// ...
+private void onGameOver() {
+    Players.writeHighscore("Tetris", score);
+}
+```

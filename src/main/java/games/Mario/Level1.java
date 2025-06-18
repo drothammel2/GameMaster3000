@@ -34,6 +34,9 @@ public class Level1 extends JFrame implements LevelBehavior {
         {  8,3 }, { 14,4 }, { 24,2 }
     };
 
+    private final List<HorizontalGegner> horizontalGegner = new ArrayList<>();
+    private final List<VertikalGegner> vertikalGegner = new ArrayList<>();
+
     public Level1() {
         setTitle("Level 1 - Overworld");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -49,46 +52,48 @@ public class Level1 extends JFrame implements LevelBehavior {
                 super.paintComponent(g);
                 if (engine == null) return;
                 int w = getWidth(), h = getHeight();
-                int bs = engine.getBLOCK_SIZE();
                 int ox = engine.getOffsetX();
-                int groundY = h - bs;
+                int groundY = h - engine.getBLOCK_SIZE();
 
                 // Himmel
                 g.setColor(new Color(135,206,235));
                 g.fillRect(0,0,w,h);
 
                 // Boden mit Löchern
-                for (int bx = 0; bx < engine.getLEVEL_LENGTH()*bs; bx += bs) {
-                    int bi = bx/bs;
+                for (int bx = 0; bx < engine.getLEVEL_LENGTH()*engine.getBLOCK_SIZE(); bx += engine.getBLOCK_SIZE()) {
+                    int bi = bx/engine.getBLOCK_SIZE();
                     boolean hole = false;
                     for (int[] ho : engine.getHoles()) {
                         if (bi >= ho[0] && bi < ho[0] + ho[1]) { hole = true; break; }
                     }
                     if (hole) continue;
                     int sx = bx - ox;
-                    if (sx+bs<0||sx>w) continue;
+                    if (sx+engine.getBLOCK_SIZE()<0||sx>w) continue;
                     g.setColor(new Color(139,69,19));
-                    g.fillRect(sx, groundY, bs, bs);
+                    g.fillRect(sx, groundY, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE());
                     g.setColor(new Color(34,139,34));
-                    g.fillRect(sx, groundY, bs, bs/4);
+                    g.fillRect(sx, groundY, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE()/4);
                 }
 
                 // Plattformen
                 for (int[] p : engine.getPlatforms()) {
-                    int startX = p[0]*bs - ox;
-                    int platY   = groundY - p[1]*bs;
+                    int startX = p[0]*engine.getBLOCK_SIZE() - ox;
+                    int platY   = groundY - p[1]*engine.getBLOCK_SIZE();
                     for (int i = 0; i < p[2]; i++) {
-                        int x = startX + i*bs;
-                        if (x+bs<0||x>w) continue;
+                        int x = startX + i*engine.getBLOCK_SIZE();
+                        if (x+engine.getBLOCK_SIZE()<0||x>w) continue;
                         g.setColor(new Color(139,69,19));
-                        g.fillRect(x, platY, bs, bs);
+                        g.fillRect(x, platY, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE());
                         g.setColor(new Color(34,139,34));
-                        g.fillRect(x, platY, bs, bs/4);
+                        g.fillRect(x, platY, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE()/4);
                     }
                 }
 
                 // Luft‐Blöcke (schwarz/​grau) und Ziel‐Block (gelb)
                 Level1.this.drawBlocks(g, engine, h);
+
+                // Gegner
+                engine.drawGegner(g, ox, groundY);
 
                 // Spieler
                 engine.drawItems(g);
@@ -125,8 +130,7 @@ public class Level1 extends JFrame implements LevelBehavior {
 
     @Override
     public void spawnItems(int w, int h) {
-        int bs      = engine.getBLOCK_SIZE();
-        int groundY = h - bs;
+        int groundY = h - engine.getBLOCK_SIZE();
         int[][] blacks = getBlackBlocks();
         items.clear();
         if (blacks.length == 0) return;
@@ -140,9 +144,9 @@ public class Level1 extends JFrame implements LevelBehavior {
             }
         }
         // Oberkante des schwarzen Blocks in der Paint-Logik:
-        int blockTop = groundY - (pHeight + 3)*bs;
+        int blockTop = groundY - (pHeight + 3)*engine.getBLOCK_SIZE();
         // Blume zentriert auf dem schwarzen Block
-        int itemX = b[0]*bs + (bs - Feuerblume.SIZE)/2;
+        int itemX = b[0]*engine.getBLOCK_SIZE() + (engine.getBLOCK_SIZE() - Feuerblume.SIZE)/2;
         int itemY = blockTop - Feuerblume.SIZE;
         items.add(new Feuerblume(itemX, itemY));
     }
@@ -150,7 +154,6 @@ public class Level1 extends JFrame implements LevelBehavior {
     @Override
     public void drawItems(Graphics g) {
         int ox = engine.getOffsetX();
-        int bs = engine.getBLOCK_SIZE();
         // Feuerblume jeweils eine Blockhöhe über dem Boden
         for (Feuerblume f : items) {
             int screenX = f.getX() - ox;
@@ -192,7 +195,6 @@ public class Level1 extends JFrame implements LevelBehavior {
     }
 
     public void drawBlocks(Graphics g, Engine engine, int panelHeight) {
-        int bs = engine.getBLOCK_SIZE();
         for (int[] b : getBlackBlocks()) {
             int idx = b[0];
             // benutze graue Farbe, wenn schon ausgelöst
@@ -208,9 +210,9 @@ public class Level1 extends JFrame implements LevelBehavior {
                     break;
                 }
             }
-            int x = idx * bs - engine.getOffsetX();
-            int y = panelHeight - (pHeight + 4) * bs;  // eine Blockhöhe höher zeichnen
-            g.fillRect(x, y, bs, bs);
+            int x = idx * engine.getBLOCK_SIZE() - engine.getOffsetX();
+            int y = panelHeight - (pHeight + 4) * engine.getBLOCK_SIZE();  // eine Blockhöhe höher zeichnen
+            g.fillRect(x, y, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE());
         }
 
         // Ziel-Wand gelb zeichnen
@@ -218,11 +220,41 @@ public class Level1 extends JFrame implements LevelBehavior {
         for (int[] gb : getGoalBlocks()) {
             int idx    = gb[0];
             int lvl    = gb[1];
-            int x      = idx * bs - engine.getOffsetX();
+            int x      = idx * engine.getBLOCK_SIZE() - engine.getOffsetX();
             // von der Block-Position bis nach ganz oben
-            for (int yy = panelHeight - (lvl + 1) * bs; yy >= -panelHeight; yy -= bs) {
-                g.fillRect(x, yy, bs, bs);
+            for (int yy = panelHeight - (lvl + 1) * engine.getBLOCK_SIZE(); yy >= -panelHeight; yy -= engine.getBLOCK_SIZE()) {
+                g.fillRect(x, yy, engine.getBLOCK_SIZE(), engine.getBLOCK_SIZE());
             }
+        }
+    }
+
+    @Override
+    public void updateGegner() {
+        for (HorizontalGegner gegner : horizontalGegner) {
+            gegner.update();
+        }
+        for (VertikalGegner gegner : vertikalGegner) {
+            gegner.update();
+        }
+    }
+
+    @Override
+    public List<HorizontalGegner> getHorizontalGegner() {
+        return horizontalGegner;
+    }
+
+    @Override
+    public List<VertikalGegner> getVertikalGegner() {
+        return vertikalGegner;
+    }
+
+    @Override
+    public void drawGegner(Graphics g, int offsetX, int groundY) {
+        for (HorizontalGegner gegner : horizontalGegner) {
+            gegner.draw(g, offsetX, groundY - 50);
+        }
+        for (VertikalGegner gegner : vertikalGegner) {
+            gegner.draw(g, offsetX, groundY - 50);
         }
     }
 }

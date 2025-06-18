@@ -18,6 +18,9 @@ public class Level2 extends JFrame implements LevelBehavior {
     private Engine engine;
     private List<Feuerblume> items = new ArrayList<>();
 
+    private final List<HorizontalGegner> horizontalGegner = new ArrayList<>();
+    private final List<VertikalGegner> vertikalGegner = new ArrayList<>();
+
     private static final int[][] LEVEL2_PLATFORMS = {
         {  3,1,2 },{  7,2,2 },{ 11,1,1 },{ 14,3,2 },
         { 18,1,3 },{ 22,2,2 },{ 26,1,1 },{ 29,3,2 },
@@ -46,43 +49,46 @@ public class Level2 extends JFrame implements LevelBehavior {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                if (engine == null) return;  // warte auf Engine-Initialisierung
+                if (engine == null) return; // warte auf Engine-Initialisierung
                 int w = getWidth(), h = getHeight();
                 int bs = engine.getBLOCK_SIZE();
                 int ox = engine.getOffsetX();
                 int groundY = h - bs;
 
                 // Himmel
-                g.setColor(new Color(135,206,235));
+                g.setColor(new Color(135, 206, 235));
                 g.fillRect(0, 0, w, h);
 
                 // Boden mit Löchern
-                for (int bx = 0; bx < engine.getLEVEL_LENGTH()*bs; bx += bs) {
-                    int bi = bx/bs;
+                for (int bx = 0; bx < engine.getLEVEL_LENGTH() * bs; bx += bs) {
+                    int bi = bx / bs;
                     boolean hole = false;
                     for (int[] ho : engine.getHoles()) {
-                        if (bi >= ho[0] && bi < ho[0] + ho[1]) { hole = true; break; }
+                        if (bi >= ho[0] && bi < ho[0] + ho[1]) {
+                            hole = true;
+                            break;
+                        }
                     }
                     if (hole) continue;
                     int sx = bx - ox;
-                    if (sx+bs < 0 || sx > w) continue;
-                    g.setColor(new Color(139,69,19));
+                    if (sx + bs < 0 || sx > w) continue;
+                    g.setColor(new Color(139, 69, 19));
                     g.fillRect(sx, groundY, bs, bs);
-                    g.setColor(new Color(34,139,34));
-                    g.fillRect(sx, groundY, bs, bs/4);
+                    g.setColor(new Color(34, 139, 34));
+                    g.fillRect(sx, groundY, bs, bs / 4);
                 }
 
                 // Plattformen
                 for (int[] p : engine.getPlatforms()) {
-                    int startX = p[0]*bs - ox;
-                    int platY  = groundY - p[1]*bs;
+                    int startX = p[0] * bs - ox;
+                    int platY = groundY - p[1] * bs;
                     for (int i = 0; i < p[2]; i++) {
-                        int x = startX + i*bs;
-                        if (x+bs < 0 || x > w) continue;
-                        g.setColor(new Color(139,69,19));
+                        int x = startX + i * bs;
+                        if (x + bs < 0 || x > w) continue;
+                        g.setColor(new Color(139, 69, 19));
                         g.fillRect(x, platY, bs, bs);
-                        g.setColor(new Color(34,139,34));
-                        g.fillRect(x, platY, bs, bs/4);
+                        g.setColor(new Color(34, 139, 34));
+                        g.fillRect(x, platY, bs, bs / 4);
                     }
                 }
 
@@ -93,6 +99,7 @@ public class Level2 extends JFrame implements LevelBehavior {
                 engine.drawPlayer(g, w, h);
                 engine.drawItems(g);
                 engine.drawFireballs(g, w, h);
+                engine.drawGegner(g, ox, groundY); // Zeichne die Gegner
             }
         };
 
@@ -106,6 +113,20 @@ public class Level2 extends JFrame implements LevelBehavior {
             spawnItems(levelPanel.getWidth(), levelPanel.getHeight());
             levelPanel.repaint();
         });
+
+        spawnGegner();
+    }
+
+    private void spawnGegner() {
+        // Beispiel: Spawne horizontale Gegner
+        horizontalGegner.add(new HorizontalGegner(300, 5));
+        horizontalGegner.add(new HorizontalGegner(600, 5));
+        horizontalGegner.add(new HorizontalGegner(900, 5));
+
+        // Beispiel: Spawne vertikale Gegner
+        vertikalGegner.add(new VertikalGegner(400, 5));
+        vertikalGegner.add(new VertikalGegner(700, 5));
+        vertikalGegner.add(new VertikalGegner(1000, 5));
     }
 
     @Override public int[][] getPlatforms() { return LEVEL2_PLATFORMS; }
@@ -196,6 +217,36 @@ public class Level2 extends JFrame implements LevelBehavior {
     @Override
     public void spawnItemAt(int worldX, int worldY) {
         items.add(new Feuerblume(worldX, worldY));
+    }
+
+    @Override
+    public void updateGegner() {
+        for (HorizontalGegner gegner : horizontalGegner) {
+            gegner.update();
+        }
+        for (VertikalGegner gegner : vertikalGegner) {
+            gegner.update();
+        }
+    }
+
+    @Override
+    public List<HorizontalGegner> getHorizontalGegner() {
+        return horizontalGegner;
+    }
+
+    @Override
+    public List<VertikalGegner> getVertikalGegner() {
+        return vertikalGegner;
+    }
+
+    @Override
+    public void drawGegner(Graphics g, int offsetX, int groundY) {
+        for (HorizontalGegner gegner : horizontalGegner) {
+            gegner.draw(g, offsetX, groundY - 50); // Zeichne horizontale Gegner
+        }
+        for (VertikalGegner gegner : vertikalGegner) {
+            gegner.draw(g, offsetX, groundY - 50); // Zeichne vertikale Gegner
+        }
     }
 
     public static void start() {

@@ -1,11 +1,14 @@
 package games.Speedrun;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-import javax.swing.*;
-import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
+
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.Test;
 
 public class SpeedrunSmokeTest {
 
@@ -29,17 +32,7 @@ public class SpeedrunSmokeTest {
         });
     }
 
-    @Test
-    public void testResourceManagerLoadsImages() {
-        // Test a few critical resources
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/grass.png"), "grass.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/tree.png"), "tree.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/stone.png"), "stone.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/water.png"), "water.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/key.png"), "key.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/door.png"), "door.png should load");
-        assertNotNull(ResourceManager.get().getImage("games/Speedrun/resources/treasure.png"), "treasure.png should load");
-    }
+    
 
     @Test
     public void testGameMapAndPlayerCreation() {

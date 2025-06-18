@@ -18,6 +18,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.BasicStroke;
 import javax.swing.JOptionPane;
+import java.awt.FlowLayout;
+import java.awt.Cursor;
+import players.Players;
 
 public class Window {
 
@@ -26,32 +29,8 @@ public class Window {
     }
 
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {
-        // Spieler-Auswahl vor dem Hauptmenü
-        selectPlayerDialog(() -> showGameMenu(listener, gameNames));
-    }
-
-    private static void selectPlayerDialog(Runnable onSelected) {
-        SwingUtilities.invokeLater(() -> {
-            List<String> players = Players.getAllPlayerNames();
-            String[] options = players.toArray(new String[0]);
-            String name = (String) JOptionPane.showInputDialog(
-                null,
-                "Spieler auswählen oder neuen Namen eingeben:",
-                "Spieler-Auswahl",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options.length > 0 ? options[0] : ""
-            );
-            if (name == null || name.trim().isEmpty()) {
-                name = JOptionPane.showInputDialog(null, "Neuen Spielernamen eingeben:", "Neuer Spieler", JOptionPane.PLAIN_MESSAGE);
-                if (name == null || name.trim().isEmpty()) {
-                    System.exit(0);
-                }
-            }
-            Players.setCurrentPlayer(name.trim());
-            onSelected.run();
-        });
+        // Spieler-Auswahl vor dem Hauptmenü ENTFERNT!
+        showGameMenu(listener, gameNames);
     }
 
     private static void showGameMenu(GameSelectionListener listener, List<String> gameNames) {
@@ -64,11 +43,23 @@ public class Window {
             JPanel mainPanel = new JPanel(new BorderLayout());
             mainPanel.setBackground(Color.BLACK);
 
-            // Überschrift oben
+            // Gemeinsames Panel für Spieleranzeige und Überschrift oben
+            JPanel titlePanel = new JPanel();
+            titlePanel.setLayout(new javax.swing.BoxLayout(titlePanel, javax.swing.BoxLayout.Y_AXIS));
+            titlePanel.setBackground(Color.BLACK);
+            String currentPlayer = (Players.getCurrentPlayer() != null && Players.getCurrentPlayer().name != null && !Players.getCurrentPlayer().name.isEmpty())
+                ? Players.getCurrentPlayer().name : "wähle einen Spieler";
+            JLabel playerInfoLabel = new JLabel(currentPlayer, JLabel.CENTER);
+            playerInfoLabel.setFont(new Font("Arial", Font.BOLD, 36));
+            playerInfoLabel.setForeground(Color.ORANGE);
+            playerInfoLabel.setAlignmentX(0.5f);
+            titlePanel.add(playerInfoLabel);
             JLabel label = new JLabel("Wähle ein Spiel:", JLabel.CENTER);
             label.setFont(new Font("Arial", Font.BOLD, 48));
             label.setForeground(Color.WHITE);
-            mainPanel.add(label, BorderLayout.NORTH);
+            label.setAlignmentX(0.5f);
+            titlePanel.add(label);
+            mainPanel.add(titlePanel, BorderLayout.NORTH);
 
             // Center-Panel für den animierten Spiele-Button und Navigation
             JPanel centerPanel = new JPanel(new BorderLayout());
@@ -79,6 +70,25 @@ public class Window {
             JPanel animationPanel = new JPanel(null);
             animationPanel.setOpaque(false);
             centerPanel.add(animationPanel, BorderLayout.CENTER);
+
+            // --- Gemeinsames Panel für Player- und Quit-Button unten zentriert ---
+            JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            southPanel.setOpaque(false);
+            JButton playerButton = new RoundedButton("Player");
+            playerButton.setFont(new Font("Arial", Font.BOLD, 36));
+            playerButton.setBackground(Color.BLACK);
+            playerButton.setForeground(Color.WHITE);
+            playerButton.setBorder(javax.swing.BorderFactory.createLineBorder(Color.ORANGE, 3));
+            playerButton.addActionListener(e -> Players.showPlayerDialog(frame));
+            southPanel.add(playerButton);
+            JButton quitButton = new RoundedButton("Quit");
+            quitButton.setFont(new Font("Arial", Font.BOLD, 36));
+            quitButton.addActionListener(e -> {
+                frame.dispose();
+                listener.onGameSelected("Quit");
+            });
+            southPanel.add(quitButton);
+            mainPanel.add(southPanel, BorderLayout.SOUTH);
 
             // currentIndex als veränderliche Variable (über ein Array)
             final int[] currentIndex = {0};
@@ -164,18 +174,6 @@ public class Window {
                 animateTripleTransition(frame, animationPanel, currentButtons, 1, listener, gameNames, currentIndex, isAnimating);
             });
             centerPanel.add(rightButton, BorderLayout.EAST);
-
-            // Quit-Button
-            JButton quitButton = new RoundedButton("Quit");
-            quitButton.setFont(new Font("Arial", Font.BOLD, 36));
-            quitButton.addActionListener(e -> {
-                frame.dispose();
-                listener.onGameSelected("Quit");
-            });
-            JPanel southPanel = new JPanel();
-            southPanel.setBackground(Color.BLACK);
-            southPanel.add(quitButton);
-            mainPanel.add(southPanel, BorderLayout.SOUTH);
 
             frame.add(mainPanel);
 

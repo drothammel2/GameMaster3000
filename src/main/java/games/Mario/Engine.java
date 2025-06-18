@@ -24,7 +24,7 @@ import javax.swing.Timer;
 
 import games.Mario.Items.Feuerblume;
 
-public class Engine {
+public class Engine extends JComponent {
     private final int BLOCK_SIZE   = 50;
     public static final int LEVEL_LENGTH = 200;
     private final int MOVE_STEP    = 10;
@@ -34,22 +34,23 @@ public class Engine {
 
     private int offsetX        = 0;
     private int playerOffsetY  = 0; // 0 = Boden
-    private int playerVelocityY= 0;
-    private boolean onGround   = true;
+    int playerVelocityY= 0;
+    boolean onGround   = true;
     private boolean movingLeft, movingRight;
     private boolean fireMode = false;               // neu: Feuer-Modus aktiv?
     // neu: Fireball-Spam verhindern
     private long lastFireTime = 0;
     private static final int FIRE_COOLDOWN = 500; // Millisekunden
-    private boolean facingLeft = false;  // neu: Blickrichtung
+    boolean facingLeft = false;  // neu: Blickrichtung
 
     private JDialog pauseDialog;
     private final JPanel panel;
     private final LevelBehavior level;
     private Image playerImage;
-    private final List<Fireball> fireballs = new ArrayList<>();
+    final List<Fireball> fireballs = new ArrayList<>();
     private final Set<Integer> usedBlackBlocks = new HashSet<>();  // verbrauchte Blocks
     private boolean levelCompleted = false;   // verhindert mehrfaches Anzeigen
+    private boolean deathDialogShown = false; // verhindert mehrfaches Anzeigen
 
     // Ein-Argument-Konstruktor für Standard-Level
     public Engine(JPanel panel) {
@@ -71,7 +72,7 @@ public class Engine {
             .start();
     }
 
-    private void handleKey(KeyEvent e, boolean press) {
+    public void handleKey(KeyEvent e, boolean press) {
         switch(e.getKeyCode()) {
             case KeyEvent.VK_LEFT:
                 movingLeft  = press;
@@ -137,6 +138,26 @@ public class Engine {
     public void drawFireballs(Graphics g, int w, int h) {
         for (Fireball f : fireballs) {
             f.draw(g, offsetX);
+        }
+    }
+
+    // Methode zum Aktualisieren der Gegner
+    public void updateGegner() {
+        level.updateGegner(); // Ruft die Update-Logik der Gegner im Level auf
+    }
+
+    // Methode zum Zeichnen der Gegner
+    public void drawGegner(Graphics g, int w, int h) {
+        int groundY = h - BLOCK_SIZE;
+
+        // Zeichne horizontale Gegner
+        for (HorizontalGegner gegner : level.getHorizontalGegner()) {
+            gegner.draw(g, offsetX, groundY - 50); // Zeichne Gegner relativ zum Boden
+        }
+
+        // Zeichne vertikale Gegner
+        for (VertikalGegner gegner : level.getVertikalGegner()) {
+            gegner.draw(g, w / 2 - PLAYER_WIDTH / 2, offsetX); // Zeichne Gegner relativ zur Kamera
         }
     }
 
@@ -280,17 +301,45 @@ public class Engine {
         // Item-Kollision prüfen und ggf. Power-Up anwenden
         level.updateItems(this, w, h);
         updateFireballs(w, h);
-        respawnIfFallenBelow(w, h);
+        respawnIfFallenBelow(h);
         checkGoalCollision(w, h);
+        level.updateGegner(); // Aktualisiere die Position der Gegner
     }
 
-    private void respawnIfFallenBelow(int w, int h) {
+    private void respawnIfFallenBelow(int h) {
         if ((h - BLOCK_SIZE) + playerOffsetY > h) {
-            offsetX         = 0;
-            playerOffsetY   = 0;
-            playerVelocityY = 0;
-            onGround        = true;
+            if (!deathDialogShown) {
+                deathDialogShown = true;
+                showDeathDialog();
+            }
         }
+    }
+
+    public void showDeathDialog() {
+        JFrame top = (JFrame) SwingUtilities.getWindowAncestor(panel);
+        JDialog dlg = new JDialog(top, "Game Over", true);
+        dlg.setSize(300, 150);
+        dlg.setLocationRelativeTo(panel);
+        JPanel p = new JPanel();
+        JButton restart = new JButton("Neustarten");
+        restart.getInputMap(JComponent.WHEN_FOCUSED)
+               .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "none");
+        restart.addActionListener(e -> {
+            dlg.dispose();
+            restartGame();
+        });
+        JButton menu = new JButton("Levelauswahl");
+        menu.getInputMap(JComponent.WHEN_FOCUSED)
+            .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "none");
+        menu.addActionListener(e -> {
+            dlg.dispose();
+            top.dispose();
+            LevelSelection.start();
+        });
+        p.add(restart);
+        p.add(menu);
+        dlg.add(p);
+        dlg.setVisible(true);
     }
 
     private void checkGoalCollision(int w, int h) {
@@ -409,5 +458,62 @@ public class Engine {
     // neu: Zugriff auf verbrauchte Blocks für’s Drawing
     public Set<Integer> getUsedBlackBlocks() {
         return Collections.unmodifiableSet(usedBlackBlocks);
+    }
+
+    public boolean isMovingLeft() {
+        return movingLeft;
+    }
+
+    public boolean isMovingRight() {
+        return movingRight;
+    }
+
+    public boolean isFireMode() {
+        return fireMode;
+    }
+
+    public int getPlayerVelocityY() {
+        return playerVelocityY;
+    }
+
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public boolean isFacingLeft() {
+        return facingLeft;
+    }
+
+    public List<Fireball> getFireballs() {
+        return Collections.unmodifiableList(fireballs);
+    }
+
+    public void restartGame() {
+        deathDialogShown = false;
+        offsetX = 0;          // Reset horizontal offset
+        playerOffsetY = 0;    // Reset vertical offset
+        playerVelocityY = 0;  // Reset vertical velocity
+        onGround = true;      // Ensure Mario is on the ground
+        movingLeft = false;   // Reset movement states
+        movingRight = false;  // Reset movement states
+        fireballs.clear(); // Entferne alle Feuerbälle
+        panel.requestFocusInWindow();
+    }
+
+    // Getter für Level
+    public LevelBehavior getLevel() {
+        return level;
+    }
+
+    @Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        int w = getWidth();
+        int h = getHeight();
+
+        drawPlayer(g, w, h); // Zeichne den Spieler
+        drawItems(g);        // Zeichne die Items
+        drawFireballs(g, w, h); // Zeichne die Feuerbälle
+        level.drawGegner(g, offsetX, h - BLOCK_SIZE); // Zeichne die Gegner
     }
 }

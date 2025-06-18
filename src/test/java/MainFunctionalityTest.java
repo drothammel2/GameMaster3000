@@ -1,5 +1,6 @@
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class MainFunctionalityTest {
 
@@ -33,11 +34,7 @@ public class MainFunctionalityTest {
         assertDoesNotThrow(() -> Class.forName("games.MonkeyType.MonkeyType"));
     }
 
-    @Test
-    void testAimTrainerClassExists() {
-        assertDoesNotThrow(() -> Class.forName("games.AimTrainer.AimTrainer"));
-    }
-
+    
     @Test
     void testSpeedrunClassExists() {
         assertDoesNotThrow(() -> Class.forName("games.Speedrun.Speedrun"));

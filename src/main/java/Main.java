@@ -1,8 +1,8 @@
 import games.Mario.Mario;
 import games.MonkeyType.MonkeyType;
-import games.Snake.Snake;
 import games.Speedrun.Speedrun;
 import games.Tetris.Tetris;
+import games.Snake.Snake;
 
 public class Main {
     public static void main(String[] args) {

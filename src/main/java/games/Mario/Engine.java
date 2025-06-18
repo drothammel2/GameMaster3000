@@ -6,14 +6,19 @@ import java.awt.Rectangle;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.ImageIcon;      // neu: Import für Feuerblume
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
@@ -21,7 +26,7 @@ import games.Mario.Items.Feuerblume;
 
 public class Engine {
     private final int BLOCK_SIZE   = 50;
-    private final int LEVEL_LENGTH = 200;
+    public static final int LEVEL_LENGTH = 200;
     private final int MOVE_STEP    = 10;
     private final int PLAYER_WIDTH = 30;
     private final int PLAYER_HEIGHT= 50;
@@ -43,6 +48,8 @@ public class Engine {
     private final LevelBehavior level;
     private Image playerImage;
     private final List<Fireball> fireballs = new ArrayList<>();
+    private final Set<Integer> usedBlackBlocks = new HashSet<>();  // verbrauchte Blocks
+    private boolean levelCompleted = false;   // verhindert mehrfaches Anzeigen
 
     // Ein-Argument-Konstruktor für Standard-Level
     public Engine(JPanel panel) {
@@ -162,15 +169,15 @@ public class Engine {
                         support = true; break;
                     }
                 }
-                // schwarz Block-Unterstützung prüfen
+                // schwarz Block-Unterstützung prüfen (unter onGround)
                 for(int[] b : level.getBlackBlocks()) {
-                   int pHeight = 0;
-                   for(int[] p : level.getPlatforms()) {
+                    int pHeight = 0;
+                    for(int[] p : level.getPlatforms()) {
                        if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
                            pHeight = p[1];
                            break;
                        }
-                   }
+                    }
                     int bx = b[0]*BLOCK_SIZE - offsetX;
                     int blockTop = groundY - (pHeight + 3)*BLOCK_SIZE;
                     if (playerY == blockTop && px + PLAYER_WIDTH > bx && px < bx + BLOCK_SIZE) {
@@ -214,7 +221,11 @@ public class Engine {
                         // Item auf Block-Top platzieren (oberhalb)
                         int itemX = b[0]*BLOCK_SIZE + bs/2;
                         int itemY = blockTop - Feuerblume.SIZE;
-                        level.spawnItemAt(itemX, itemY);
+                        // nur einmal Item spawnen
+                        if (!usedBlackBlocks.contains(b[0])) {
+                            level.spawnItemAt(itemX, itemY);
+                            usedBlackBlocks.add(b[0]);
+                        }
                         break;
                     }
                 }
@@ -249,19 +260,18 @@ public class Engine {
             }
         }
         // Kollisions-Handling für schwarze Blöcke nur beim Landen
-        int px = w/2 - PLAYER_WIDTH/2;                       // Spieler-X im Fenster
-        int py = groundY - PLAYER_HEIGHT + playerOffsetY;    // Spieler-Y im Fenster
+        int px = w/2 - PLAYER_WIDTH/2;                    // Spieler-X im Fenster
+        int py = groundY - PLAYER_HEIGHT + playerOffsetY;// Spieler-Y im Fenster
         for(int[] b : level.getBlackBlocks()) {
             int pHeight = 0;
             for(int[] p : level.getPlatforms()) {
                 if(b[0]>=p[0]&&b[0]<p[0]+p[2]) { pHeight = p[1]; break; }
             }
-            int bx = b[0]*BLOCK_SIZE;
+            int bx = b[0]*BLOCK_SIZE - offsetX;   // Bildschirm-koord durch Abzug von offsetX
             int by = groundY - (pHeight + 3)*BLOCK_SIZE;
             Rectangle blockRect = new Rectangle(bx, by, BLOCK_SIZE, BLOCK_SIZE);
             Rectangle nextPlayer = new Rectangle(px, py + playerVelocityY, PLAYER_WIDTH, PLAYER_HEIGHT);
             if(playerVelocityY>0 && py+PLAYER_HEIGHT<=by && nextPlayer.intersects(blockRect)) {
-                // Offset statt nur py setzen
                 playerOffsetY = by - groundY;
                 playerVelocityY = 0;
                 onGround = true;
@@ -271,6 +281,7 @@ public class Engine {
         level.updateItems(this, w, h);
         updateFireballs(w, h);
         respawnIfFallenBelow(w, h);
+        checkGoalCollision(w, h);
     }
 
     private void respawnIfFallenBelow(int w, int h) {
@@ -280,6 +291,44 @@ public class Engine {
             playerVelocityY = 0;
             onGround        = true;
         }
+    }
+
+    private void checkGoalCollision(int w, int h) {
+        if (levelCompleted) return;
+        int groundY = h - BLOCK_SIZE;
+        int px = w/2 - PLAYER_WIDTH/2;
+        int py = groundY - PLAYER_HEIGHT + playerOffsetY;
+        Rectangle playerRect = new Rectangle(px, py, PLAYER_WIDTH, PLAYER_HEIGHT);
+        for(int[] g : level.getGoalBlocks()) {
+            int bx = g[0]*BLOCK_SIZE - offsetX;
+            // Hitbox als gelbe Wand über die gesamte Höhe
+            Rectangle goalRect = new Rectangle(bx, 0, BLOCK_SIZE, h);
+            if(playerRect.intersects(goalRect)) {
+                levelCompleted = true;
+                showLevelComplete();
+                break;
+            }
+        }
+    }
+
+    private void showLevelComplete() {
+        JFrame top = (JFrame) SwingUtilities.getWindowAncestor(panel);
+        JDialog dlg = new JDialog(top, "Level geschafft!", true);
+        dlg.setSize(300,120);
+        dlg.setLocationRelativeTo(panel);
+        JPanel p = new JPanel();
+        JButton menu = new JButton("Levelauswahl");  // zur Levelauswahl
+       // SPACE deaktivieren
+       menu.getInputMap(JComponent.WHEN_FOCUSED)
+           .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "none");
+        menu.addActionListener(e -> {
+            dlg.dispose();
+            top.dispose();
+            LevelSelection.start();           // hier ggf. Levelauswahl starten
+        });
+        p.add(menu);
+        dlg.add(p);
+        dlg.setVisible(true);
     }
 
     // Getter für Level‐Painting
@@ -303,7 +352,12 @@ public class Engine {
 
         JPanel pnl = new JPanel();
         JButton resume = new JButton("Fortsetzen");
+       // SPACE deaktivieren
+       resume.getInputMap(JComponent.WHEN_FOCUSED)
+             .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "none");
         JButton quit   = new JButton("Spiel beenden");
+       quit.getInputMap(JComponent.WHEN_FOCUSED)
+           .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "none");
         resume.addActionListener(a -> {
             pauseDialog.dispose();
             panel.requestFocusInWindow();
@@ -350,5 +404,10 @@ public class Engine {
         playerImage = icon.getImage()
                           .getScaledInstance(PLAYER_WIDTH, PLAYER_HEIGHT, Image.SCALE_SMOOTH);
         panel.repaint();
+    }
+
+    // neu: Zugriff auf verbrauchte Blocks für’s Drawing
+    public Set<Integer> getUsedBlackBlocks() {
+        return Collections.unmodifiableSet(usedBlackBlocks);
     }
 }

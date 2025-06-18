@@ -47,7 +47,7 @@ public class Level1 extends JFrame implements LevelBehavior {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                if (engine == null) return;  // warte, bis Engine gesetzt ist
+                if (engine == null) return;
                 int w = getWidth(), h = getHeight();
                 int bs = engine.getBLOCK_SIZE();
                 int ox = engine.getOffsetX();
@@ -87,27 +87,13 @@ public class Level1 extends JFrame implements LevelBehavior {
                     }
                 }
 
-                // Zeichne Luft‐Blöcke mit dynamischem Abstand
-                g.setColor(Color.BLACK);
-                for (int[] b : BLACK_BLOCKS) {
-                    int bx = b[0]*bs - ox;
-                    // Bestimme Plattform-Höhe unter diesem Block
-                    int pHeight = 0;
-                    for (int[] p : engine.getPlatforms()) {
-                        if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
-                            pHeight = p[1];
-                            break;
-                        }
-                    }
-                    // drei Blöcke über Plattform oder Boden
-                    int by = groundY - (pHeight + 3)*bs;
-                    g.fillRect(bx, by, bs, bs);
-                }
+                // Luft‐Blöcke (schwarz/​grau) und Ziel‐Block (gelb)
+                Level1.this.drawBlocks(g, engine, h);
 
                 // Spieler
                 engine.drawItems(g);
-                engine.drawFireballs(g, getWidth(), getHeight());
-                engine.drawPlayer(g, getWidth(), getHeight());
+                engine.drawFireballs(g, w, h);
+                engine.drawPlayer(g, w, h);
             }
         };
 
@@ -129,6 +115,12 @@ public class Level1 extends JFrame implements LevelBehavior {
         return Arrays.stream(BLACK_BLOCKS)
                      .filter(b -> b[1] >= 2)    // nur Blöcke mind. 2 Höhen über Boden
                      .toArray(int[][]::new);
+    }
+
+    @Override
+    public int[][] getGoalBlocks() {
+        // letzter Block im Level (Index LEVEL_LENGTH-1), auf Boden
+        return new int[][] {{ Engine.LEVEL_LENGTH - 1, 0 }};
     }
 
     @Override
@@ -197,5 +189,40 @@ public class Level1 extends JFrame implements LevelBehavior {
             Level1 lvl = new Level1();
             lvl.setVisible(true);
         });
+    }
+
+    public void drawBlocks(Graphics g, Engine engine, int panelHeight) {
+        int bs = engine.getBLOCK_SIZE();
+        for (int[] b : getBlackBlocks()) {
+            int idx = b[0];
+            // benutze graue Farbe, wenn schon ausgelöst
+            if (engine.getUsedBlackBlocks().contains(idx)) {
+                g.setColor(Color.GRAY);
+            } else {
+                g.setColor(Color.BLACK);
+            }
+            int pHeight = 0;
+            for (int[] p : engine.getPlatforms()) {
+                if (b[0] >= p[0] && b[0] < p[0] + p[2]) {
+                    pHeight = p[1];
+                    break;
+                }
+            }
+            int x = idx * bs - engine.getOffsetX();
+            int y = panelHeight - (pHeight + 4) * bs;  // eine Blockhöhe höher zeichnen
+            g.fillRect(x, y, bs, bs);
+        }
+
+        // Ziel-Wand gelb zeichnen
+        g.setColor(Color.YELLOW);
+        for (int[] gb : getGoalBlocks()) {
+            int idx    = gb[0];
+            int lvl    = gb[1];
+            int x      = idx * bs - engine.getOffsetX();
+            // von der Block-Position bis nach ganz oben
+            for (int yy = panelHeight - (lvl + 1) * bs; yy >= -panelHeight; yy -= bs) {
+                g.fillRect(x, yy, bs, bs);
+            }
+        }
     }
 }

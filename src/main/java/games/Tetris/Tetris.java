@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Random;
+import players.Players;
 
 public class Tetris {
     public static void start() {
@@ -53,7 +54,6 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     private int curRow, curCol;
     private boolean gameOver = false;
     private int score = 0;
-    private int highscore = 0;
     private int linesCleared = 0;
     private int level = 1;
     private int dropDelay = 400;
@@ -67,27 +67,9 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         setBackground(new Color(30, 30, 40));
         setFocusable(true);
         addKeyListener(this);
-        loadHighscore();
         timer = new Timer(dropDelay, this);
         spawnTetromino();
         timer.start();
-    }
-
-    private void loadHighscore() {
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
-            if (java.nio.file.Files.exists(path)) {
-                String s = java.nio.file.Files.readAllLines(path).get(0);
-                highscore = Integer.parseInt(s.trim());
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private void saveHighscore() {
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
-            java.nio.file.Files.write(path, String.valueOf(highscore).getBytes());
-        } catch (Exception ignored) {}
     }
 
     private void spawnTetromino() {
@@ -103,9 +85,9 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         if (!canMove(current.shape, curRow, curCol)) {
             gameOver = true;
             timer.stop();
-            if (score > highscore) {
-                highscore = score;
-                saveHighscore();
+            // Highscore speichern (nur wenn Spieler gesetzt)
+            if (Players.getCurrentPlayer() != null) {
+                Players.writeHighscore("Tetris", score);
             }
         }
     }
@@ -271,7 +253,12 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         g.setFont(new Font("Arial", Font.BOLD, 18));
         g.drawString("Highscore:", x, y + 65);
         g.setFont(new Font("Arial", Font.BOLD, 22));
-        g.drawString(String.valueOf(highscore), x, y + 90);
+        // Zeige Highscore des aktuellen Spielers an
+        String playerHighscore = "";
+        if (Players.getCurrentPlayer() != null) {
+            playerHighscore = Players.getCurrentPlayer().getHighscore("Tetris");
+        }
+        g.drawString(playerHighscore.isEmpty() ? "0" : playerHighscore, x, y + 90);
 
         g.setFont(new Font("Arial", Font.BOLD, 18));
         g.drawString("Level: " + level, x, y + 120);

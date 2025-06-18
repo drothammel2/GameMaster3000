@@ -1,6 +1,6 @@
 aimtrainer: 
 mario: 
 monkeytype: 
-snake: 
+snake: 1
 speedrun: 
 tetris: 

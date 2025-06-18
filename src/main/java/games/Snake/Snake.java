@@ -1,4 +1,5 @@
 package games.Snake;
+import players.Players;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -7,6 +8,8 @@ import java.util.Random;
 
 public class Snake {
     public static void start() {
+        System.out.println("Aktueller Spieler: " + Players.getCurrentPlayer());
+
         JFrame frame = new JFrame("Snake");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setUndecorated(true); // Kein Rahmen
@@ -300,6 +303,7 @@ public class Snake {
             if (head.x < 0 || head.x >= WIDTH || head.y < 0 || head.y >= HEIGHT || snake.contains(head)) {
                 running = false;
                 timer.stop();
+                Players.writeHighscore("Snake", score);
                 if (score > highscore) {
                     highscore = score;
                 }
@@ -444,5 +448,6 @@ public class Snake {
 
         @Override public void keyReleased(KeyEvent e) {}
         @Override public void keyTyped(KeyEvent e) {}
+
     }
 }

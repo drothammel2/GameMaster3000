@@ -10,16 +10,14 @@ public class Speedrun {
             JFrame frame = new JFrame("Speedrun");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-            frame.setSize(1280, 800);
-            frame.setLocationRelativeTo(null); // Center the window
-            frame.setResizable(true);
+            // Vollbild aktivieren
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            frame.setUndecorated(true);
 
             SpeedrunPanel panel = new SpeedrunPanel();
-            panel.setPreferredSize(new Dimension(1280, 800));
             frame.setLayout(new BorderLayout());
             frame.add(panel, BorderLayout.CENTER);
 
-            frame.pack();
             frame.setVisible(true);
 
             SwingUtilities.invokeLater(panel::requestFocusInWindow);

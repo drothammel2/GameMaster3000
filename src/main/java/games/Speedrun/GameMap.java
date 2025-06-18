@@ -38,6 +38,16 @@ public class GameMap {
     private final int stone32 = 32;  // 032.png
     private final int hut33 = 33;    // 033.png
 
+    // IDs für spezielle Tiles (20-27 außer 26)
+    private final int tile20 = 20;
+    private final int tile21 = 21;
+    private final int tile22 = 22;
+    private final int tile23 = 23;
+    private final int tile24 = 24;
+    private final int tile25 = 25;
+    // tile26 bleibt begehbar
+    private final int tile27 = 27;
+
     public enum MapSource {
         FILE, RANDOM
     }
@@ -441,9 +451,11 @@ public class GameMap {
     public boolean canMoveTo(int nx, int ny, Player.Direction dir) {
         if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) return false;
         int tile = map[ny][nx];
-        // Make both water00 and water01 not walkable
+        // Tür- und Standardkollision
         if (tile == -1 && foundKeys < totalKeys && !treasureOpen) return false;
-        if (tile == stone32 || tile == water01 || tile == tree16 || tile == water00) return false;
+        if (tile == stone32 || tile == water01 || tile == tree16 || tile == water00
+            || tile == tile20 || tile == tile21 || tile == tile22 || tile == tile23
+            || tile == tile24 || tile == tile25 || tile == tile27) return false;
         if (tile == -1 && foundKeys == totalKeys && !treasureOpen) {
             treasureOpen = true;
             return true;

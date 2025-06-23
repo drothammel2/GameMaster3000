@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JFrame;
 
 public class GameplayState implements GameState {
     private static final int TILE_SIZE = 48;
@@ -24,21 +25,38 @@ public class GameplayState implements GameState {
     private static final float CAMERA_LERP = 0.15f; // 0..1, higher = faster camera
 
     private long lastUpdateTime = System.nanoTime();
+    private final Runnable onExitToMenu;
+    private final JFrame frame;
 
-    public GameplayState(SpeedrunPanel panel) {
+    public GameplayState(SpeedrunPanel panel, Runnable onExitToMenu, JFrame frame) {
         this.panel = panel;
         this.input = new InputManager();
+        this.onExitToMenu = onExitToMenu;
+        this.frame = frame;
         // Use 100x100 for random, but .txt will override for file maps
         gameMap = new GameMap(100, 100, TILE_SIZE);
-
         player = new Player(gameMap, input, gameMap.getCols() / 2f, gameMap.getRows() / 2f);
         entities.add(player);
-
-        // Camera starts centered on player
         cameraX = player.x;
         cameraY = player.y;
+        lastUpdateTime = System.nanoTime();
+    }
 
-        startTime = System.currentTimeMillis();
+    public GameplayState(SpeedrunPanel panel, Runnable onExitToMenu, JFrame frame, boolean randomMap) {
+        this.panel = panel;
+        this.input = new InputManager();
+        this.onExitToMenu = onExitToMenu;
+        this.frame = frame;
+        if (randomMap) {
+            gameMap = new GameMap(100, 100, TILE_SIZE); // or use your random logic
+        } else {
+            gameMap = new GameMap(100, 100, TILE_SIZE); // or load normal map
+        }
+        player = new Player(gameMap, input, gameMap.getCols() / 2f, gameMap.getRows() / 2f);
+        entities.add(player);
+        cameraX = player.x;
+        cameraY = player.y;
+        lastUpdateTime = System.nanoTime();
     }
 
     @Override
@@ -104,10 +122,9 @@ public class GameplayState implements GameState {
             g.setFont(new Font("Arial", Font.BOLD, 60));
             g.drawString("PAUSED", width / 2 - 150, height / 2 - 20);
             g.setFont(new Font("Arial", Font.BOLD, 32));
-            // Updated menu with all options
             int menuY = height / 2 + 40;
             int menuX = width / 2 - 260;
-            g.drawString("ESC: Resume   Q: Quit   C: Change controls", menuX, menuY);
+            g.drawString("ESC: Resume   Q: Quit   C: Change controls   K: Main Menu", menuX, menuY);
             g.drawString("R: Reload random map   W: Worldbuilder map", menuX, menuY + 40);
         }
     }
@@ -119,6 +136,11 @@ public class GameplayState implements GameState {
                 paused = false;
             } else if (e.getKeyCode() == KeyEvent.VK_Q) {
                 System.exit(0);
+            } else if (e.getKeyCode() == KeyEvent.VK_K) {
+                if (onExitToMenu != null) {
+                    frame.dispose();
+                    onExitToMenu.run();
+                }
             } else if (e.getKeyCode() == KeyEvent.VK_C) {
                 wasdMode = !wasdMode;
                 player.setUseWASD(wasdMode);
@@ -134,39 +156,28 @@ public class GameplayState implements GameState {
                 startTime = System.currentTimeMillis();
                 paused = false;
             } else if (e.getKeyCode() == KeyEvent.VK_W) {
-                // Reload with worldbuilder.txt
-                gameMap.reload(GameMap.MapSource.FILE, "games/Speedrun/resources/worldbuilder.txt");
-                entities.clear();
-                player = new Player(gameMap, input, gameMap.getCols() / 2f, gameMap.getRows() / 2f);
-                entities.add(player);
-                cameraX = player.x;
-                cameraY = player.y;
-                gameWon = false;
-                startTime = System.currentTimeMillis();
-                paused = false;
+                // Switch to worldbuilder mode
+                panel.setState(new WorldbuilderState(panel, onExitToMenu, frame));
             }
-            return;
-        }
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            paused = true;
-            return;
-        }
-        if (gameWon) {
-            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                gameMap.reset();
-                entities.clear();
-                player = new Player(gameMap, input, gameMap.getCols() / 2f, gameMap.getRows() / 2f);
-                entities.add(player);
-                gameWon = false;
-                startTime = System.currentTimeMillis();
+        } else {
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                paused = true;
             }
-            return;
+            if (gameWon) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    gameMap.reset();
+                    entities.clear();
+                    player = new Player(gameMap, input, gameMap.getCols() / 2f, gameMap.getRows() / 2f);
+                    entities.add(player);
+                    gameWon = false;
+                    startTime = System.currentTimeMillis();
+                }
+            }
+            if (e.getKeyCode() == KeyEvent.VK_M) {
+                showMap = !showMap;
+            }
+            input.keyPressed(e.getKeyCode());
         }
-        if (e.getKeyCode() == KeyEvent.VK_M) {
-            showMap = !showMap;
-            return;
-        }
-        input.keyPressed(e.getKeyCode());
     }
 
     @Override

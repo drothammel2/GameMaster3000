@@ -22,13 +22,13 @@ public class Main {
                         MonkeyType.start();
                         break;    
                     case "Snake":
-                        Snake.start();
+                        Snake.start(() -> Window.startMainscreen(this));
                         break;
                     case "Speedrun":
-                        Speedrun.start();
+                        Speedrun.start(() -> Window.startMainscreen(this));
                         break;
                     case "Tetris":
-                        Tetris.start();
+                        Tetris.start(() -> Window.startMainscreen(this));
                         break;
                     case "Quit":
                         System.exit(0);

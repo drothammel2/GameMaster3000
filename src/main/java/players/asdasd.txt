@@ -1,6 +1,0 @@
-aimtrainer: 
-mario: 
-monkeytype: 
-snake: 
-speedrun: 
-tetris: 

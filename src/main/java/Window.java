@@ -28,6 +28,8 @@ public class Window {
         void onGameSelected(String gameName);
     }
 
+    
+
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {
         // Spieler-Auswahl vor dem Hauptmenü ENTFERNT!
         showGameMenu(listener, gameNames);
@@ -310,7 +312,7 @@ public class Window {
 
     // Alternative startMainscreen-Methode mit voreingestellten Spielen (unverändert)
     public static void startMainscreen(GameSelectionListener listener) {
-        startMainscreen(listener, Arrays.asList("Mario", "MonkeyType", "Snake", "Speedrun", "Tetris"));
+        startMainscreen(listener, Arrays.asList("Mario", "MonkeyType", "Speedrun", "Snake", "Tetris", "BomberMan"));
     }
     
 }

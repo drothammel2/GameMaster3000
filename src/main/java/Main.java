@@ -32,7 +32,7 @@ public class Main {
                         BomberMan.start(() -> Window.startMainscreen(this));
                         break;
                     case "Tetris":
-                        Tetris.start();
+                        Tetris.start(() -> Window.startMainscreen(this));
                         break;
                     default:
                         System.out.println("Kein gültiges Spiel ausgewählt.");

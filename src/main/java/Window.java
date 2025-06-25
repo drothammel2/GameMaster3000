@@ -28,6 +28,8 @@ public class Window {
         void onGameSelected(String gameName);
     }
 
+    
+
     public static void startMainscreen(GameSelectionListener listener, List<String> gameNames) {
         // Spieler-Auswahl vor dem Hauptmenü ENTFERNT!
         showGameMenu(listener, gameNames);
@@ -48,14 +50,14 @@ public class Window {
             titlePanel.setLayout(new javax.swing.BoxLayout(titlePanel, javax.swing.BoxLayout.Y_AXIS));
             titlePanel.setBackground(Color.BLACK);
             String currentPlayer = (Players.getCurrentPlayer() != null && Players.getCurrentPlayer().name != null && !Players.getCurrentPlayer().name.isEmpty())
-                ? Players.getCurrentPlayer().name : "wähle einen Spieler";
+                ? Players.getCurrentPlayer().name : "Wähle einen Spieler..!";
             JLabel playerInfoLabel = new JLabel(currentPlayer, JLabel.CENTER);
-            playerInfoLabel.setFont(new Font("Arial", Font.BOLD, 36));
+            playerInfoLabel.setFont(new Font("Arial", Font.BOLD, 48));
             playerInfoLabel.setForeground(Color.ORANGE);
             playerInfoLabel.setAlignmentX(0.5f);
             titlePanel.add(playerInfoLabel);
-            JLabel label = new JLabel("Wähle ein Spiel:", JLabel.CENTER);
-            label.setFont(new Font("Arial", Font.BOLD, 48));
+            JLabel label = new JLabel("und wähle ein Spiel:", JLabel.CENTER);
+            label.setFont(new Font("Arial", Font.BOLD, 36));
             label.setForeground(Color.WHITE);
             label.setAlignmentX(0.5f);
             titlePanel.add(label);
@@ -79,7 +81,13 @@ public class Window {
             playerButton.setBackground(Color.BLACK);
             playerButton.setForeground(Color.WHITE);
             playerButton.setBorder(javax.swing.BorderFactory.createLineBorder(Color.ORANGE, 3));
-            playerButton.addActionListener(e -> Players.showPlayerDialog(frame));
+            playerButton.addActionListener(e -> {
+                Players.showPlayerDialog(frame);
+                // Update label after dialog closes
+                String updatedPlayer = (Players.getCurrentPlayer() != null && Players.getCurrentPlayer().name != null && !Players.getCurrentPlayer().name.isEmpty())
+                    ? Players.getCurrentPlayer().name : "Wähle einen Spieler..!";
+                playerInfoLabel.setText(updatedPlayer);
+            });
             southPanel.add(playerButton);
             JButton quitButton = new RoundedButton("Quit");
             quitButton.setFont(new Font("Arial", Font.BOLD, 36));
@@ -177,9 +185,11 @@ public class Window {
 
             frame.add(mainPanel);
 
-            // Tastatur-Action für Pfeiltasten
+            // Tastatur-Action für Pfeiltasten und A/D
             frame.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
                 .put(javax.swing.KeyStroke.getKeyStroke("LEFT"), "leftAction");
+            frame.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke('A', 0), "leftAction");
             frame.getRootPane().getActionMap().put("leftAction", new javax.swing.AbstractAction() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -190,6 +200,8 @@ public class Window {
 
             frame.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
                 .put(javax.swing.KeyStroke.getKeyStroke("RIGHT"), "rightAction");
+            frame.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke('D', 0), "rightAction");
             frame.getRootPane().getActionMap().put("rightAction", new javax.swing.AbstractAction() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -300,7 +312,7 @@ public class Window {
 
     // Alternative startMainscreen-Methode mit voreingestellten Spielen (unverändert)
     public static void startMainscreen(GameSelectionListener listener) {
-        startMainscreen(listener, Arrays.asList("Mario", "MonkeyType", "Snake", "Speedrun", "Snake", "Tetris"));
+        startMainscreen(listener, Arrays.asList("Mario", "MonkeyType", "Speedrun", "Snake", "Tetris", "BomberMan"));
     }
     
 }

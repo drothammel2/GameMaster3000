@@ -7,14 +7,14 @@ import java.util.LinkedList;
 import java.util.Random;
 
 public class Snake {
-    public static void start() {
-        System.out.println("Aktueller Spieler: " + Players.getCurrentPlayer());
+    public static void start(Runnable onExitToMenu) {
+        System.out.println("Aktueller Spieler: " + players.Players.getCurrentPlayer());
 
         JFrame frame = new JFrame("Snake");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setUndecorated(true); // Kein Rahmen
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Vollbild
-        frame.add(new GamePanel());
+        frame.add(new GamePanel(onExitToMenu, frame));
         frame.setVisible(true);
     }
 
@@ -64,7 +64,12 @@ public class Snake {
             }
         }
 
-        public GamePanel() {
+        private final Runnable onExitToMenu;
+        private final JFrame frame;
+
+        public GamePanel(Runnable onExitToMenu, JFrame frame) {
+            this.onExitToMenu = onExitToMenu;
+            this.frame = frame;
             setBackground(Color.BLACK);
             setFocusable(true);
             addKeyListener(this);
@@ -196,6 +201,11 @@ public class Snake {
                     int levelWidth = g2d.getFontMetrics().stringWidth(levelMsg);
                     g2d.drawString(levelMsg, (getWidth() - levelWidth) / 2, getHeight() / 2 + 80);
 
+                    g2d.setFont(new Font("Arial", Font.PLAIN, 24));
+                    String qMsg = "Q für Hauptmenü";
+                    int qWidth = g2d.getFontMetrics().stringWidth(qMsg);
+                    g2d.drawString(qMsg, (getWidth() - qWidth) / 2, getHeight() / 2 + 90);
+
                     g2d.dispose();
                     return;
                 }
@@ -225,6 +235,11 @@ public class Snake {
                     int hsWidth = g2d.getFontMetrics().stringWidth(hs);
                     g2d.drawString(hs, (getWidth() - hsWidth) / 2, getHeight() / 2 + 100);
 
+                    g2d.setFont(new Font("Arial", Font.PLAIN, 24));
+                    String qMsg = "Q für Hauptmenü";
+                    int qWidth = g2d.getFontMetrics().stringWidth(qMsg);
+                    g2d.drawString(qMsg, (getWidth() - qWidth) / 2, getHeight() / 2 + 70);
+
                     g2d.dispose();
                     return;
                 }
@@ -249,6 +264,11 @@ public class Snake {
                 String pauseHint = "P zum Pausieren";
                 int pauseHintWidth = g2d.getFontMetrics().stringWidth(pauseHint);
                 g2d.drawString(pauseHint, (getWidth() - pauseHintWidth) / 2, getHeight() / 2 + 60);
+
+                g2d.setFont(new Font("Arial", Font.PLAIN, 24));
+                String qMsg = "Q für Hauptmenü";
+                int qWidth = g2d.getFontMetrics().stringWidth(qMsg);
+                g2d.drawString(qMsg, (getWidth() - qWidth) / 2, getHeight() / 2 + 90);
 
                 g2d.setFont(new Font("Arial", Font.BOLD, 28));
                 String hs = "Highscore: " + highscore;
@@ -407,6 +427,13 @@ public class Snake {
                 if (key == KeyEvent.VK_L) {
                     levelSelectMenu = true;
                     repaint();
+                    return;
+                }
+                if (key == KeyEvent.VK_Q) {
+                    if (onExitToMenu != null) {
+                        frame.dispose();
+                        onExitToMenu.run();
+                    }
                     return;
                 }
             }

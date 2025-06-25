@@ -502,4 +502,12 @@ public class GameMap {
         placeKeys();
         visit(playerX, playerY);
     }
+
+    /**
+     * Returns the tile index at the given coordinates, or -1 if out of bounds.
+     */
+    public int getTile(int x, int y) {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return -1;
+        return map[y][x];
+    }
 }

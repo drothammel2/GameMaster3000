@@ -7,7 +7,7 @@ import java.util.Random;
 import players.Players;
 
 public class Tetris {
-    public static void start() {
+    public static void start(Runnable onExitToMenu) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Tetris");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -15,6 +15,12 @@ public class Tetris {
             frame.setLocationRelativeTo(null);
             frame.setResizable(false);
             frame.add(new TetrisPanel());
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
+                    if (onExitToMenu != null) onExitToMenu.run();
+                }
+            });
             frame.setVisible(true);
         });
     }

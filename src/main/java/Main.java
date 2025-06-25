@@ -1,8 +1,9 @@
+import games.BomberMan.BomberMan;
 import games.Mario.Mario;
 import games.MonkeyType.MonkeyType;
+import games.Snake.Snake;
 import games.Speedrun.Speedrun;
 import games.Tetris.Tetris;
-import games.Snake.Snake;
 
 public class Main {
     public static void main(String[] args) {
@@ -16,19 +17,22 @@ public class Main {
                         Mario.start();
                         break;
                     case "Snake":
-                        Snake.start();
-                        break;
-                    case "Tetris":
-                        Tetris.start();
+                        Snake.start(() -> Window.startMainscreen(this));
                         break;
                     case "MonkeyType":
                         MonkeyType.start();
                         break;
                     case "Speedrun":
-                        Speedrun.start();
+                        Speedrun.start(() -> Window.startMainscreen(this));
                         break;
                     case "Quit":
                         System.exit(0);
+                        break;
+                    case "BomberMan":
+                        BomberMan.start();
+                        break;
+                    case "Tetris":
+                        Tetris.start(() -> Window.startMainscreen(this));
                         break;
                     default:
                         System.out.println("Kein gültiges Spiel ausgewählt.");

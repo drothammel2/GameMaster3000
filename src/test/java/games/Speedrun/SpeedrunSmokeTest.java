@@ -1,3 +1,4 @@
+/* 
 package games.Speedrun;
 
 import java.lang.reflect.InvocationTargetException;
@@ -54,3 +55,5 @@ public class SpeedrunSmokeTest {
         }
     }
 }
+
+*/

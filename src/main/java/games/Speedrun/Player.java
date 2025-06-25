@@ -14,6 +14,7 @@ public class Player extends Entity {
 
     // Control scheme: true = WASD, false = Arrow keys
     private boolean useWASD = true;
+    private boolean phaseMode = false;
 
     public Player(GameMap map, InputManager input, float x, float y) {
         super(x, y);
@@ -44,6 +45,8 @@ public class Player extends Entity {
     public void setUseWASD(boolean useWASD) {
         this.useWASD = useWASD;
     }
+
+    public void setPhaseMode(boolean phase) { this.phaseMode = phase; }
 
     @Override
     public void update(float deltaTime) {
@@ -90,7 +93,7 @@ public class Player extends Entity {
         if ((dx != 0 || dy != 0) && moveCooldown <= 0f) {
             int nx = Math.round(x) + ndx;
             int ny = Math.round(y) + ndy;
-            if (map.canMoveTo(nx, ny, newDir)) {
+            if (phaseMode || map.canMoveTo(nx, ny, newDir)) {
                 x = nx;
                 y = ny;
                 dir = newDir;

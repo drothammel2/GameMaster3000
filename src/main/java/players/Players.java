@@ -143,36 +143,6 @@ public class Players {
         }
         selectPanel.add(playerBox);
 
-        JButton newBtn = new JButton("Neu");
-        newBtn.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog(dialog, "Neuen Spielernamen eingeben:");
-            if (name != null && !name.trim().isEmpty()) {
-                setCurrentPlayer(name.trim());
-                playerBox.addItem(name.trim());
-                playerBox.setSelectedItem(name.trim());
-            }
-        });
-        selectPanel.add(newBtn);
-
-        JButton delBtn = new JButton("Löschen");
-        delBtn.addActionListener(e -> {
-            String name = (String) playerBox.getSelectedItem();
-            if (name != null && !name.trim().isEmpty()) {
-                int confirm = JOptionPane.showConfirmDialog(dialog, "Spieler '" + name + "' wirklich löschen?", "Bestätigen", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    Player p = new Player(name.trim());
-                    p.delete();
-                    playerBox.removeItem(name.trim());
-                    if (getCurrentPlayer() != null && getCurrentPlayer().name.equals(name.trim())) {
-                        setCurrentPlayer("");
-                    }
-                }
-            }
-        });
-        selectPanel.add(delBtn);
-
-        dialog.add(selectPanel, BorderLayout.NORTH);
-
         // Highscore-Anzeige
         JTextArea highscoreArea = new JTextArea();
         highscoreArea.setEditable(false);
@@ -199,19 +169,45 @@ public class Players {
             }
         };
 
-        // Highscores sofort beim Öffnen anzeigen
-        updateHighscores.run();
-
-        // Highscores aktualisieren, wenn ein Spieler ausgewählt wird
-        playerBox.addActionListener(e -> updateHighscores.run());
-
-        // Highscores aktualisieren, wenn ein neuer Spieler angelegt wird
+        JButton newBtn = new JButton("Neu");
         newBtn.addActionListener(e -> {
             String name = JOptionPane.showInputDialog(dialog, "Neuen Spielernamen eingeben:");
             if (name != null && !name.trim().isEmpty()) {
                 setCurrentPlayer(name.trim());
                 playerBox.addItem(name.trim());
                 playerBox.setSelectedItem(name.trim());
+                updateHighscores.run();
+            }
+        });
+        selectPanel.add(newBtn);
+
+        JButton delBtn = new JButton("Löschen");
+        delBtn.addActionListener(e -> {
+            String name = (String) playerBox.getSelectedItem();
+            if (name != null && !name.trim().isEmpty()) {
+                int confirm = JOptionPane.showConfirmDialog(dialog, "Spieler '" + name + "' wirklich löschen?", "Bestätigen", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    Player p = new Player(name.trim());
+                    p.delete();
+                    playerBox.removeItem(name.trim());
+                    if (getCurrentPlayer() != null && getCurrentPlayer().name.equals(name.trim())) {
+                        setCurrentPlayer("");
+                    }
+                }
+            }
+        });
+        selectPanel.add(delBtn);
+
+        dialog.add(selectPanel, BorderLayout.NORTH);
+
+        // Highscores sofort beim Öffnen anzeigen
+        updateHighscores.run();
+
+        // Highscores aktualisieren, wenn ein Spieler ausgewählt wird
+        playerBox.addActionListener(e -> {
+            String name = (String) playerBox.getSelectedItem();
+            if (name != null && !name.trim().isEmpty()) {
+                setCurrentPlayer(name.trim());
                 updateHighscores.run();
             }
         });

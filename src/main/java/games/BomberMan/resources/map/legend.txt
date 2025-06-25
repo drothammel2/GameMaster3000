@@ -1,0 +1,6 @@
+0 = Leer
+1 = Unzerstörbare Wand (grau)
+2 = Zerstörbarer Block (orange)
+3 = Spieler-Start
+4 = Bombe
+5 = PowerUp

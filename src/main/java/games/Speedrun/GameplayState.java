@@ -233,4 +233,39 @@ public class GameplayState implements GameState {
             input.keyReleased(e.getKeyCode());
         }
     }
+
+    // --- Maus-Handling für Baumfällen ---
+    public void mousePressed(java.awt.event.MouseEvent e) {
+        if (gameWon || paused) return;
+        if (e.getButton() == java.awt.event.MouseEvent.BUTTON1) {
+            int width = panel.getWidth();
+            int height = panel.getHeight();
+            int viewCols = Math.min(width / TILE_SIZE, gameMap.getCols());
+            int viewRows = Math.min(height / TILE_SIZE, gameMap.getRows());
+            float camOffsetX = cameraX - viewCols / 2f + 0.5f;
+            float camOffsetY = cameraY - viewRows / 2f + 0.5f;
+            int mx = (int)((e.getX() / (float)TILE_SIZE) + camOffsetX);
+            int my = (int)((e.getY() / (float)TILE_SIZE) + camOffsetY);
+            int px = player.getX();
+            int py = player.getY();
+            if (gameMap.hasAxe() && isNeighbor(mx, my, px, py)) {
+                gameMap.fellTree(mx, my);
+            }
+            // Spitzhacke: Erde (017) abbauen
+            if (gameMap.hasPickaxe() && isNeighbor(mx, my, px, py) && gameMap.getTile(mx, my) == 17) {
+                gameMap.mineBlock(mx, my);
+            }
+            // Tür öffnen: Nur wenn alle Schlüssel, vor Tür und Mausklick auf Tür
+            if (gameMap.getFoundKeys() == gameMap.getTotalKeys()
+                && isNeighbor(mx, my, px, py)
+                && gameMap.getTile(mx, my) == 0) { // 0 = grass00 = Tür
+                gameMap.openAllDoors();
+            }
+        }
+    }
+    private boolean isNeighbor(int x1, int y1, int x2, int y2) {
+        int dx = Math.abs(x1 - x2);
+        int dy = Math.abs(y1 - y2);
+        return (dx + dy == 1); // Nur direkt angrenzend
+    }
 }

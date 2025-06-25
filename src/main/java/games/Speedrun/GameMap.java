@@ -14,7 +14,7 @@ public class GameMap {
     private boolean[][] visited;
     private int playerX, playerY;
     private int foundKeys = 0;
-    private final int totalKeys = 2; // Nur 2 Keys spawnen, die anderen werden anders vergeben
+    private final int totalKeys = 4; // Jetzt 4 Keys: 2 spawnen, 1 durch Bäume, 1 durch Mining
 
     private Point[] keyPositions;
     private boolean[] keyCollected;
@@ -62,37 +62,40 @@ public class GameMap {
     private Point axePosition;
     private Point pickaxePosition;
 
+    // --- Backup-Mechanismus für Map ---
+    private static final String BACKUP_MAP_PATH = "src/main/java/games/Speedrun/resources/world_backup.txt";
+    private static final String ACTIVE_MAP_PATH = "src/main/java/games/Speedrun/resources/world.txt";
+
     public GameMap(int rows, int cols, int tileSize) {
-        this(rows, cols, tileSize, MapSource.FILE, "games/Speedrun/resources/world.txt");
+        this(rows, cols, tileSize, MapSource.FILE, BACKUP_MAP_PATH);
     }
 
     public GameMap(int rows, int cols, int tileSize, MapSource source, String filePath) {
         this.tileSize = tileSize;
         this.mapSource = source;
         this.mapFilePath = filePath;
-        // Default size for random maps
         this.rows = rows;
         this.cols = cols;
         loadSprites();
-        if (source == MapSource.FILE) {
-            loadMapFromFile(filePath);
-        } else {
-            this.map = new int[rows][cols];
-            this.visited = new boolean[rows][cols];
-            generateMap();
-            saveMapToFile("src/main/java/games/Speedrun/resources/rdm_gen_world.txt");
-        }
+        // Immer aus world_backup.txt laden
+        loadMapFromFile(BACKUP_MAP_PATH);
         this.keyPositions = new Point[totalKeys];
         this.keyCollected = new boolean[totalKeys];
-        // Entferne automatisches Platzieren von Haus und Keys
-        // placePlayerAndHouse();
-        // placeKeys();
         visit(playerX, playerY);
         spawnCollectables();
     }
 
     private void loadMapFromFile(String filePath) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getClassLoader().getResourceAsStream(filePath)))) {
+        try {
+            BufferedReader br;
+            File file = new File(filePath);
+            if (file.exists()) {
+                br = new BufferedReader(new FileReader(file));
+            } else {
+                InputStream in = getClass().getClassLoader().getResourceAsStream(filePath);
+                if (in == null) throw new FileNotFoundException("Resource not found: " + filePath);
+                br = new BufferedReader(new InputStreamReader(in));
+            }
             java.util.List<String[]> lines = new java.util.ArrayList<>();
             String line;
             int maxCols = 0;
@@ -101,6 +104,7 @@ public class GameMap {
                 lines.add(tokens);
                 if (tokens.length > maxCols) maxCols = tokens.length;
             }
+            br.close();
             this.rows = lines.size();
             this.cols = maxCols;
             this.map = new int[rows][cols];
@@ -273,8 +277,8 @@ public class GameMap {
         java.util.Collections.shuffle(keyTiles);
         java.util.Collections.shuffle(axeTiles);
         java.util.Collections.shuffle(pickaxeTiles);
-        // Keys verteilen (alle 4 auf verschiedene Tiles, falls möglich)
-        for (int i = 0; i < totalKeys; i++) {
+        // Nur 2 Keys spawnen auf der Map (Index 0 und 1), die anderen 2 (2 und 3) werden durch Aktionen vergeben
+        for (int i = 0; i < 2; i++) {
             if (!keyTiles.isEmpty()) {
                 keyPositions[i] = keyTiles.remove(0);
                 System.out.println("Key " + i + " spawned at: " + keyPositions[i].x + "," + keyPositions[i].y);
@@ -282,6 +286,10 @@ public class GameMap {
                 keyPositions[i] = null;
                 System.out.println("No spawn tile for key " + i);
             }
+        }
+        // Die anderen beiden Keys werden nicht auf der Map platziert
+        for (int i = 2; i < totalKeys; i++) {
+            keyPositions[i] = null;
         }
         // Axe
         if (!axeTiles.isEmpty()) {
@@ -521,11 +529,25 @@ public class GameMap {
     // Call this to open all doors (e.g. after collecting all keys or by event)
     public void openAllDoors() {
         doorsOpen = true;
+        // Ersetze alle Türen (grass00) mit earth17 (017)
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                if (map[y][x] == grass00) {
+                    map[y][x] = earth17;
+                }
+            }
+        }
+        saveActiveMap();
     }
 
     // Call this to close all doors (reset)
     public void closeAllDoors() {
         doorsOpen = false;
+    }
+
+    // Nach jeder Map-Änderung speichern wir in world.txt
+    public void saveActiveMap() {
+        saveMapToFile(ACTIVE_MAP_PATH);
     }
 
     public void reset() {
@@ -536,15 +558,8 @@ public class GameMap {
         this.doorsOpen = false;
         this.axePosition = null;
         this.pickaxePosition = null;
-        if (mapSource == MapSource.FILE) {
-            loadMapFromFile(mapFilePath);
-        } else {
-            generateMap();
-            saveMapToFile("src/main/java/games/Speedrun/resources/rdm_gen_world.txt");
-        }
-        // Entferne Platzieren von Haus und Keys beim Zurücksetzen
-        // placePlayerAndHouse();
-        // placeKeys();
+        // Immer aus world_backup.txt laden
+        loadMapFromFile(BACKUP_MAP_PATH);
         visit(playerX, playerY);
         spawnCollectables();
     }
@@ -641,4 +656,61 @@ public class GameMap {
     public Image getPickaxeIcon() { return pickaxe; }
     public boolean hasAxe() { return axePosition == null; }
     public boolean hasPickaxe() { return pickaxePosition == null; }
+
+    // --- Baumfäll-Logik ---
+    private int treesFelled = 0;
+    private final int treesForKey = 2;
+    // --- Mining-Logik ---
+    private int blocksMined = 0;
+    private final int blocksForKey = 2;
+
+    public boolean fellTree(int x, int y) {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return false;
+        if (map[y][x] == tree16) {
+            map[y][x] = 1; // 001.png
+            treesFelled++;
+            saveActiveMap();
+            // Key-Belohnung
+            if (treesFelled >= treesForKey) {
+                for (int i = 0; i < keyCollected.length; i++) {
+                    if (!keyCollected[i]) {
+                        keyCollected[i] = true;
+                        foundKeys++;
+                        break;
+                    }
+                }
+                treesFelled = 0;
+            }
+            // Türen öffnen, falls alle Schlüssel
+            if (foundKeys == totalKeys) openAllDoors();
+            return true;
+        }
+        return false;
+    }
+
+    // --- Mining-Logik: Erde (017) mit Spitzhacke abbauen, nach 2 Blöcken Key geben ---
+    public boolean mineBlock(int x, int y) {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return false;
+        if (map[y][x] == earth17) {
+            map[y][x] = road03; // 003.png
+            blocksMined++;
+            saveActiveMap();
+            // Key-Belohnung
+            if (blocksMined >= blocksForKey) {
+                for (int i = 0; i < keyCollected.length; i++) {
+                    if (!keyCollected[i]) {
+                        keyCollected[i] = true;
+                        foundKeys++;
+                        break;
+                    }
+                }
+                blocksMined = 0;
+            }
+            // Türen öffnen, falls alle Schlüssel
+            if (foundKeys == totalKeys) openAllDoors();
+            return true;
+        }
+        return false;
+    }
+    public int getBlocksMined() { return blocksMined; }
 }

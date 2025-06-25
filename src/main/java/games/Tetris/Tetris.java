@@ -1,26 +1,34 @@
 package games.Tetris;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.Random;
-import players.Players;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 public class Tetris {
-    public static void start(Runnable onExitToMenu) {
+    public static void start() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Tetris");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setSize(420, 820);
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            frame.setResizable(true);
+            TetrisPanel panel = new TetrisPanel();
+            frame.add(panel);
+            frame.setMinimumSize(panel.getPreferredSize());
             frame.setLocationRelativeTo(null);
-            frame.setResizable(false);
-            frame.add(new TetrisPanel());
-            frame.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override
-                public void windowClosed(java.awt.event.WindowEvent e) {
-                    if (onExitToMenu != null) onExitToMenu.run();
-                }
-            });
             frame.setVisible(true);
         });
     }
@@ -60,6 +68,7 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     private int curRow, curCol;
     private boolean gameOver = false;
     private int score = 0;
+    private int highscore = 0;
     private int linesCleared = 0;
     private int level = 1;
     private int dropDelay = 400;
@@ -73,9 +82,27 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         setBackground(new Color(30, 30, 40));
         setFocusable(true);
         addKeyListener(this);
+        loadHighscore();
         timer = new Timer(dropDelay, this);
         spawnTetromino();
         timer.start();
+    }
+
+    private void loadHighscore() {
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
+            if (java.nio.file.Files.exists(path)) {
+                String s = java.nio.file.Files.readAllLines(path).get(0);
+                highscore = Integer.parseInt(s.trim());
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void saveHighscore() {
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(System.getProperty("user.home"), ".tetris_highscore");
+            java.nio.file.Files.write(path, String.valueOf(highscore).getBytes());
+        } catch (Exception ignored) {}
     }
 
     private void spawnTetromino() {
@@ -91,9 +118,9 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         if (!canMove(current.shape, curRow, curCol)) {
             gameOver = true;
             timer.stop();
-            // Highscore speichern (nur wenn Spieler gesetzt)
-            if (Players.getCurrentPlayer() != null) {
-                Players.writeHighscore("Tetris", score);
+            if (score > highscore) {
+                highscore = score;
+                saveHighscore();
             }
         }
     }
@@ -157,54 +184,66 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-
-        // Draw board background
+        // Fülle das ganze Fenster mit dem Spielfeld-Hintergrund
         g.setColor(new Color(40, 40, 60));
-        g.fillRoundRect(0, 0, COLS * TILE, ROWS * TILE, 16, 16);
+        g.fillRect(0, 0, getWidth(), getHeight());
+        
+        // Berechne feste Dimensionen des Spielfelds
+        int boardWidth = COLS * TILE;
+        int boardHeight = ROWS * TILE;
+        int totalWidth = boardWidth + SIDE_PANEL;
+        int totalHeight = boardHeight;
+        // Berechne Offsets, um das Spielfeld zentriert anzuzeigen
+        int offsetX = (getWidth() - totalWidth) / 2;
+        int offsetY = (getHeight() - totalHeight) / 2;
 
-        // Draw board tiles
+        // Zeichne Spielfeld-Hintergrund
+        g.setColor(new Color(40, 40, 60));
+        g.fillRoundRect(offsetX, offsetY, boardWidth, boardHeight, 16, 16);
+
+        // Zeichne Spielfeld-Kacheln
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
-                drawTile(g, board[r][c], c * TILE, r * TILE, false, false);
+                drawTile(g, board[r][c], offsetX + c * TILE, offsetY + r * TILE, false, false);
             }
         }
 
-        // Draw shadow (ghost piece)
+        // Zeichne Geisterfigur
         if (!gameOver) {
             int ghostRow = curRow;
             while (canMove(current.shape, ghostRow + 1, curCol)) ghostRow++;
             for (int r = 0; r < current.shape.length; r++) {
                 for (int c = 0; c < current.shape[0].length; c++) {
                     if (current.shape[r][c] != 0) {
-                        drawTile(g, current.color, (curCol + c) * TILE, (ghostRow + r) * TILE, true, false);
+                        drawTile(g, current.color, offsetX + (curCol + c) * TILE, offsetY + (ghostRow + r) * TILE, true, false);
                     }
                 }
             }
         }
 
-        // Draw current tetromino
+        // Zeichne aktuelles Tetromino
         if (!gameOver) {
             for (int r = 0; r < current.shape.length; r++) {
                 for (int c = 0; c < current.shape[0].length; c++) {
                     if (current.shape[r][c] != 0) {
                         boolean anim = hardDropAnim && (curRow + r) == hardDropY;
-                        drawTile(g, current.color, (curCol + c) * TILE, (curRow + r) * TILE, false, anim);
+                        drawTile(g, current.color, offsetX + (curCol + c) * TILE, offsetY + (curRow + r) * TILE, false, anim);
                     }
                 }
             }
         }
 
-        // Draw grid
+        // Zeichne Gitter
         g.setColor(new Color(80, 80, 100));
         for (int r = 0; r <= ROWS; r++)
-            g.drawLine(0, r * TILE, COLS * TILE, r * TILE);
+            g.drawLine(offsetX, offsetY + r * TILE, offsetX + boardWidth, offsetY + r * TILE);
         for (int c = 0; c <= COLS; c++)
-            g.drawLine(c * TILE, 0, c * TILE, ROWS * TILE);
+            g.drawLine(offsetX + c * TILE, offsetY, offsetX + c * TILE, offsetY + boardHeight);
 
-        // Draw side panel
-        drawSidePanel(g);
+        // Zeichne Seitenpanel relativ zum Offset
+        drawSidePanel(g, offsetX + boardWidth, offsetY);
 
-        // Draw Game Over
+        // Zeichne Game Over (unverändert)
         if (gameOver) {
             g.setColor(new Color(0, 0, 0, 180));
             g.fillRect(0, getHeight() / 2 - 60, getWidth(), 120);
@@ -215,6 +254,67 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
             g.setColor(Color.WHITE);
             g.drawString("Leertaste für Neustart", getWidth() / 2 - 90, getHeight() / 2 + 40);
             g.drawString("ESC zum Schließen", getWidth() / 2 - 80, getHeight() / 2 + 70);
+        }
+    }
+
+    // Angepasste drawSidePanel()-Methode, verschiebt die Zeichnung um den Offset
+    private void drawSidePanel(Graphics g, int panelX, int panelY) {
+        int x = panelX + 10;
+        int y = panelY + 20;
+        g.setColor(new Color(60, 60, 80));
+        g.fillRoundRect(panelX, panelY, SIDE_PANEL, ROWS * TILE, 16, 16);
+        
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Score:", x, y + 10);
+        g.setFont(new Font("Arial", Font.BOLD, 22));
+        g.drawString(String.valueOf(score), x, y + 35);
+        
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Highscore:", x, y + 65);
+        g.setFont(new Font("Arial", Font.BOLD, 22));
+        g.drawString(String.valueOf(highscore), x, y + 90);
+        
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Level: " + level, x, y + 120);
+        g.drawString("Lines: " + linesCleared, x, y + 145);
+        
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        g.drawString("Next:", x, y + 180);
+        if (next != null) {
+            int[][] origShape = next.shape;
+            // Für den I-Block (color == 1) drehe das Shape, um 4 Kästchen vertikal darzustellen.
+            int[][] shapeToDraw = (next.color == 1) ? next.rotate() : origShape;
+            int color = next.color;
+            // Definiere den Vorschau-Bereich
+            int previewAreaX = x;
+            int previewAreaY = y + 200;
+            int previewAreaWidth = SIDE_PANEL - 20;
+            int previewAreaHeight = 4 * TILE;
+            // Berechne die Bounding Box des zu zeichnenden Shapes
+            int minR = shapeToDraw.length, maxR = -1, minC = shapeToDraw[0].length, maxC = -1;
+            for (int r = 0; r < shapeToDraw.length; r++) {
+                for (int c = 0; c < shapeToDraw[0].length; c++) {
+                    if (shapeToDraw[r][c] != 0) {
+                        if (r < minR) minR = r;
+                        if (r > maxR) maxR = r;
+                        if (c < minC) minC = c;
+                        if (c > maxC) maxC = c;
+                    }
+                }
+            }
+            int shapeRows = maxR - minR + 1;
+            int shapeCols = maxC - minC + 1;
+            // Zentriere das Tetromino im Vorschau-Bereich
+            int dx = previewAreaX + (previewAreaWidth - shapeCols * TILE) / 2;
+            int dy = previewAreaY + (previewAreaHeight - shapeRows * TILE) / 2;
+            for (int r = 0; r < shapeToDraw.length; r++) {
+                for (int c = 0; c < shapeToDraw[0].length; c++) {
+                    if (shapeToDraw[r][c] != 0) {
+                        drawTile(g, color, dx + (c - minC) * TILE, dy + (r - minR) * TILE, false, false);
+                    }
+                }
+            }
         }
     }
 
@@ -242,50 +342,6 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
         g2.drawRoundRect(x + 2, y + 2, TILE - 4, TILE - 4, 10, 10);
 
         g2.dispose();
-    }
-
-    private void drawSidePanel(Graphics g) {
-        int x = COLS * TILE + 10;
-        int y = 20;
-        g.setColor(new Color(60, 60, 80));
-        g.fillRoundRect(COLS * TILE, 0, SIDE_PANEL, ROWS * TILE, 16, 16);
-
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Score:", x, y + 10);
-        g.setFont(new Font("Arial", Font.BOLD, 22));
-        g.drawString(String.valueOf(score), x, y + 35);
-
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Highscore:", x, y + 65);
-        g.setFont(new Font("Arial", Font.BOLD, 22));
-        // Zeige Highscore des aktuellen Spielers an
-        String playerHighscore = "";
-        if (Players.getCurrentPlayer() != null) {
-            playerHighscore = Players.getCurrentPlayer().getHighscore("Tetris");
-        }
-        g.drawString(playerHighscore.isEmpty() ? "0" : playerHighscore, x, y + 90);
-
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Level: " + level, x, y + 120);
-        g.drawString("Lines: " + linesCleared, x, y + 145);
-
-        // Draw next piece
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Next:", x, y + 180);
-        if (next != null) {
-            int[][] shape = next.shape;
-            int color = next.color;
-            int offsetX = x + 10;
-            int offsetY = y + 200;
-            for (int r = 0; r < shape.length; r++) {
-                for (int c = 0; c < shape[0].length; c++) {
-                    if (shape[r][c] != 0) {
-                        drawTile(g, color, offsetX + c * TILE, offsetY + r * TILE, false, false);
-                    }
-                }
-            }
-        }
     }
 
     @Override

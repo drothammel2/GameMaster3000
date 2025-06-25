@@ -1,21 +1,21 @@
 package games.BomberMan;
 
-import javax.swing.JPanel;
-import java.awt.Graphics;
 import java.awt.Color;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.awt.image.BufferedImage;
+
 import javax.imageio.ImageIO;
-import java.io.File;
-import java.awt.GradientPaint;
-import java.awt.Graphics2D;
 import javax.swing.ImageIcon;
-import java.awt.Image;
-import java.io.IOException;
+import javax.swing.JPanel;
 
 public class GameBoard extends JPanel {
     // Neue Kartengröße für fast Vollbild
@@ -143,6 +143,7 @@ public class GameBoard extends JPanel {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        /* TODO: FIX THIS ISSUE, IT CREATES EXCEPTIONS
         try {
             winningGif = new ImageIcon("resources/win.gif"); // Load the GIF from resources
         } catch (Exception e) {
@@ -152,7 +153,7 @@ public class GameBoard extends JPanel {
             winImage = ImageIO.read(new File("resources/wallpaper.png")); // Load wallpaper.png from resources
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
         spawnEnemies(4); // Spawn 4 enemies
         startEnemyMovement();
     }

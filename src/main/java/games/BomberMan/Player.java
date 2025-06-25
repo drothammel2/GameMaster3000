@@ -5,7 +5,6 @@ public class Player {
     private int maxBombs = 1;
     private int explosionRange = 2;
     private boolean speedBoost = false;
-    private int speed = 1;
 
     public Player(int startX, int startY) {
         this.x = startX;
@@ -21,8 +20,8 @@ public class Player {
     }
 
     public void move(int dx, int dy) {
-        x += dx * speed;
-        y += dy * speed;
+        x += dx;
+        y += dy;
         System.out.println("Spieler bewegt sich zu Position: (" + x + ", " + y + ")");
     }
 
@@ -42,15 +41,8 @@ public class Player {
     }
 
     public void activateSpeedBoost() {
-        speed = 2;
+        speedBoost = true;
         System.out.println("Geschwindigkeitsboost aktiviert!");
-        new java.util.Timer().schedule(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                speed = 1;
-                System.out.println("Geschwindigkeitsboost beendet.");
-            }
-        }, 5000); // Boost dauert 5 Sekunden
     }
 
     public int getMaxBombs() {

@@ -29,7 +29,7 @@ public class Main {
                         System.exit(0);
                         break;
                     case "BomberMan":
-                        BomberMan.start();
+                        BomberMan.start(() -> Window.startMainscreen(this));
                         break;
                     case "Tetris":
                         Tetris.start(() -> Window.startMainscreen(this));

@@ -1,21 +1,21 @@
 package games.BomberMan;
 
-import java.awt.Color;
-import java.awt.GradientPaint;
+import javax.swing.JPanel;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.Color;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
+import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import java.io.File;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
 import javax.swing.ImageIcon;
-import javax.swing.JPanel;
+import java.awt.Image;
+import java.io.IOException;
 
 public class GameBoard extends JPanel {
     // Neue Kartengröße für fast Vollbild
@@ -75,6 +75,7 @@ public class GameBoard extends JPanel {
     private String difficulty = "Normal"; // Default difficulty
     private int enemyCount = 6; // Default enemy count
     private int enemySpeed = 2; // Default enemy speed
+    private Runnable quitAction;
 
     public GameBoard() {
         player = new Player(playerX, playerY);
@@ -141,9 +142,7 @@ public class GameBoard extends JPanel {
             settingsScreenBackground = ImageIO.read(new File("src/main/java/games/BomberMan/resources/wallpaper2.png"));
         } catch (Exception e) {
             e.printStackTrace();
-        }/*
-        TODO: FIX IO_EXCEPTION
-
+        }
         try {
             winningGif = new ImageIcon("resources/win.gif"); // Load the GIF from resources
         } catch (Exception e) {
@@ -153,7 +152,7 @@ public class GameBoard extends JPanel {
             winImage = ImageIO.read(new File("resources/wallpaper.png")); // Load wallpaper.png from resources
         } catch (IOException e) {
             e.printStackTrace();
-        }*/ 
+        }
         spawnEnemies(4); // Spawn 4 enemies
         startEnemyMovement();
     }
@@ -333,6 +332,11 @@ public class GameBoard extends JPanel {
                     case KeyEvent.VK_ENTER:
                         if (selectedOption == 1) { // Settings option
                             openSettings();
+                        } else if (selectedOption == 2) { // Quit option
+                            if (quitAction != null) {
+                                quitAction.run(); // Return to the game selection menu
+                            }
+                            return;
                         } else {
                             executeSelectedOption();
                         }
@@ -720,13 +724,12 @@ public class GameBoard extends JPanel {
     private void startEnemyMovement() {
         if (enemyMoveTimer != null) enemyMoveTimer.cancel();
         enemyMoveTimer = new java.util.Timer();
-        int delay = Math.max(50, 1000 / enemySpeed); // Calculate delay based on enemySpeed, minimum 50ms
         enemyMoveTimer.schedule(new java.util.TimerTask() {
             @Override
             public void run() {
                 moveEnemies();
             }
-        }, 0, delay); // Adjust delay dynamically
+        }, 0, 400); // Move every 400ms
     }
 
     private void moveEnemies() {
@@ -1256,6 +1259,16 @@ public class GameBoard extends JPanel {
         } else {
             System.out.println("Using Arrow Key controls");
             // Additional logic to apply arrow key controls can be added here
+        }
+    }
+
+    public void setQuitAction(Runnable quitAction) {
+        this.quitAction = quitAction;
+    }
+
+    private void handleQuit() {
+        if (quitAction != null) {
+            quitAction.run();
         }
     }
 }

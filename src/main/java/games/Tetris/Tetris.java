@@ -19,13 +19,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 public class Tetris {
-    public static void start() {
+    // Neue Signatur mit Callback
+    public static void start(Runnable onExitToMenu) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Tetris");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             frame.setResizable(true);
-            TetrisPanel panel = new TetrisPanel();
+            TetrisPanel panel = new TetrisPanel(onExitToMenu); // Callback übergeben
             frame.add(panel);
             frame.setMinimumSize(panel.getPreferredSize());
             frame.setLocationRelativeTo(null);
@@ -76,7 +77,15 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
     private boolean hardDropAnim = false;
     private int hardDropY = -1;
     private int hardDropAnimFrames = 0;
+    private Runnable onExitToMenu;  // Neuer Feld zur Speicherung des Callback
 
+    // Neuer Konstruktor, der den Callback entgegennimmt
+    public TetrisPanel(Runnable onExitToMenu) {
+        this();
+        this.onExitToMenu = onExitToMenu;
+    }
+    
+    // Bestehender Standardkonstruktor wird beibehalten
     public TetrisPanel() {
         setPreferredSize(new Dimension(COLS * TILE + SIDE_PANEL, ROWS * TILE));
         setBackground(new Color(30, 30, 40));
@@ -390,7 +399,11 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
                 repaint();
             }
             if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                SwingUtilities.getWindowAncestor(this).dispose();
+                JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+                frame.dispose(); // Spiel-Fenster schließen
+                if(onExitToMenu != null) {
+                    onExitToMenu.run(); // Callback aufrufen, um das Hauptmenü anzuzeigen
+                }
             }
             return;
         }
@@ -431,7 +444,11 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener {
                 }
                 break;
             case KeyEvent.VK_ESCAPE:
-                SwingUtilities.getWindowAncestor(this).dispose();
+                JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+                frame.dispose();
+                if(onExitToMenu != null) {
+                    onExitToMenu.run();
+                }
                 break;
         }
         if (repaintNeeded) repaint();

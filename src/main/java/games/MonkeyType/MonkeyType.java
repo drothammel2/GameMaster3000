@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.List;
 
 public class MonkeyType {
-    public static void start() {
+    public static void start(Runnable onExitToMenu) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("MonkeyType");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -100,16 +100,20 @@ public class MonkeyType {
             });
             speedTimer.start();
 
+            // Pause-Status
+            final boolean[] paused = {false};
+
             textField.addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
-                    // ESC schließt das Spiel
-                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                        speedTimer.stop();
-                        frame.dispose();
+                    // ESC öffnet das Pause-Menü
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE && !paused[0]) {
+                        paused[0] = true;
+                        showPauseMenu(frame, paused, speedTimer, onExitToMenu);
+                        return;
                     }
                     // SPACE wertet das Wort aus und zeigt das nächste
-                    if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    if (e.getKeyCode() == KeyEvent.VK_SPACE && !paused[0]) {
                         String typed = textField.getText().trim();
                         String currentWord = wordQueue.getFirst();
                         if (typed.equals(currentWord)) {
@@ -139,7 +143,7 @@ public class MonkeyType {
                 public void keyTyped(KeyEvent e) {
                     // Zähle nur sichtbare Zeichen (keine Steuerzeichen)
                     char ch = e.getKeyChar();
-                    if (!Character.isISOControl(ch) && ch != ' ') {
+                    if (!Character.isISOControl(ch) && ch != ' ' && !paused[0]) {
                         totalTypedChars[0]++;
                     }
                 }
@@ -151,6 +155,35 @@ public class MonkeyType {
             // Fokus direkt auf das Textfeld setzen
             SwingUtilities.invokeLater(textField::requestFocusInWindow);
         });
+    }
+
+    private static void showPauseMenu(JFrame parent, boolean[] paused, javax.swing.Timer speedTimer, Runnable onExitToMenu) {
+        JDialog pauseDialog = new JDialog(parent, "Pause", true);
+        pauseDialog.setLayout(new BorderLayout());
+        JLabel label = new JLabel("Pause - Drücke K für Hauptmenü, ESC für weiter", SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 24));
+        pauseDialog.add(label, BorderLayout.CENTER);
+        pauseDialog.setSize(500, 200);
+        pauseDialog.setLocationRelativeTo(parent);
+        pauseDialog.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_K) {
+                    pauseDialog.dispose();
+                    parent.dispose();
+                    speedTimer.stop();
+                    paused[0] = false;
+                    if (onExitToMenu != null) onExitToMenu.run();
+                }
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    pauseDialog.dispose();
+                    paused[0] = false;
+                }
+            }
+        });
+        pauseDialog.setFocusable(true);
+        pauseDialog.setVisible(true);
+        pauseDialog.requestFocusInWindow();
     }
 
     private static void updateWordsLabel(JLabel label, LinkedList<String> wordQueue) {

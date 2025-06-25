@@ -14,7 +14,7 @@ public class GameMap {
     private boolean[][] visited;
     private int playerX, playerY;
     private int foundKeys = 0;
-    private final int totalKeys = 4;
+    private final int totalKeys = 2; // Nur 2 Keys spawnen, die anderen werden anders vergeben
 
     private Point[] keyPositions;
     private boolean[] keyCollected;
@@ -26,7 +26,7 @@ public class GameMap {
 
     // Sprites: all 38 tile textures (000.png to 037.png)
     private Image[] tileImages = new Image[38];
-    private Image key, door, chest;
+    private Image key, door, chest, axe, pickaxe;
 
     // Named indices for main tiles
     private final int grass00 = 0;   // 000.png
@@ -55,6 +55,13 @@ public class GameMap {
     private MapSource mapSource;
     private String mapFilePath;
 
+    // Track if the door is open (for all doors on grass00)
+    private boolean doorsOpen = false;
+
+    // Add fields for axe and pickaxe positions
+    private Point axePosition;
+    private Point pickaxePosition;
+
     public GameMap(int rows, int cols, int tileSize) {
         this(rows, cols, tileSize, MapSource.FILE, "games/Speedrun/resources/world.txt");
     }
@@ -77,9 +84,11 @@ public class GameMap {
         }
         this.keyPositions = new Point[totalKeys];
         this.keyCollected = new boolean[totalKeys];
-        placePlayerAndHouse();
-        placeKeys();
+        // Entferne automatisches Platzieren von Haus und Keys
+        // placePlayerAndHouse();
+        // placeKeys();
         visit(playerX, playerY);
+        spawnCollectables();
     }
 
     private void loadMapFromFile(String filePath) {
@@ -151,6 +160,8 @@ public class GameMap {
         key = Toolkit.getDefaultToolkit().createImage("src/main/java/games/Speedrun/resources/objects/key.png");
         door = Toolkit.getDefaultToolkit().createImage("src/main/java/games/Speedrun/resources/objects/door.png");
         chest = Toolkit.getDefaultToolkit().createImage("src/main/java/games/Speedrun/resources/objects/chest.png");
+        axe = Toolkit.getDefaultToolkit().createImage("src/main/java/games/Speedrun/resources/objects/axe.png");
+        pickaxe = Toolkit.getDefaultToolkit().createImage("src/main/java/games/Speedrun/resources/objects/pickaxe.png");
     }
 
     private void generateMap() {
@@ -226,56 +237,90 @@ public class GameMap {
     }
 
     private void placePlayerAndHouse() {
-        // Always spawn player in the middle of the map, regardless of walkability
-        playerX = cols / 2;
-        playerY = rows / 2;
-
-        // Place house only if it fits
-        int hx = playerX + 3;
-        int hy = playerY - houseH / 2;
-        boolean fits = hx >= 0 && hy >= 0 && hx + houseW <= cols && hy + houseH <= rows;
-        if (fits) {
-            houseTopLeft = new Point(hx, hy);
-            for (int yy = hy; yy < hy + houseH; yy++)
-                for (int xx = hx; xx < hx + houseW; xx++)
-                    if (yy == hy || yy == hy + houseH - 1 || xx == hx || xx == hx + houseW - 1)
-                        map[yy][xx] = stone32;
-                    else
-                        map[yy][xx] = grass00;
-            int doorX = hx + houseW / 2;
-            int doorY = hy + houseH - 1;
-            map[doorY][doorX] = -1; // special value for door
-            treasureDoor = new Point(doorX, doorY);
-        } else {
-            houseTopLeft = null;
-            treasureDoor = null;
-        }
+        // entfernt: kein Haus mehr generieren
     }
 
     private void placeKeys() {
-        Random rand = new Random();
+        // entfernt: keine Keys mehr generieren
+    }
+
+    // Konfigurierbare Spawn-Tile-IDs für Collectables
+    private int keySpawnTile = 1;      // 001.png
+    private int axeSpawnTile = 1;      // aktuell auch 001.png
+    private int pickaxeSpawnTile = 1;  // aktuell auch 001.png
+
+    // Spawn alle Keys, Axe, Pickaxe auf konfigurierbaren Tiles (aktuell 001.png)
+    public void spawnCollectables() {
+        System.out.println("hallo fatih");
+        // Debug: clear all key positions and collected state
         for (int i = 0; i < totalKeys; i++) {
-            int tries = 0;
-            while (tries++ < 1000) {
-                int x = rand.nextInt(cols);
-                int y = rand.nextInt(rows);
-                boolean inHouse = houseTopLeft != null &&
-                        x >= houseTopLeft.x && x < houseTopLeft.x + houseW &&
-                        y >= houseTopLeft.y && y < houseTopLeft.y + houseH;
-                if (map[y][x] == grass00 && !isOccupiedByKey(x, y) && !inHouse && (x != playerX || y != playerY)) {
-                    keyPositions[i] = new Point(x, y);
-                    keyCollected[i] = false;
-                    break;
-                }
+            keyPositions[i] = null;
+            keyCollected[i] = false;
+        }
+        axePosition = null;
+        pickaxePosition = null;
+        // Sammle alle möglichen Spawn-Positionen für jedes Objekt
+        java.util.List<Point> keyTiles = new java.util.ArrayList<>();
+        java.util.List<Point> axeTiles = new java.util.ArrayList<>();
+        java.util.List<Point> pickaxeTiles = new java.util.ArrayList<>();
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                if (map[y][x] == keySpawnTile) keyTiles.add(new Point(x, y));
+                if (map[y][x] == axeSpawnTile) axeTiles.add(new Point(x, y));
+                if (map[y][x] == pickaxeSpawnTile) pickaxeTiles.add(new Point(x, y));
             }
+        }
+        java.util.Collections.shuffle(keyTiles);
+        java.util.Collections.shuffle(axeTiles);
+        java.util.Collections.shuffle(pickaxeTiles);
+        // Keys verteilen (alle 4 auf verschiedene Tiles, falls möglich)
+        for (int i = 0; i < totalKeys; i++) {
+            if (!keyTiles.isEmpty()) {
+                keyPositions[i] = keyTiles.remove(0);
+                System.out.println("Key " + i + " spawned at: " + keyPositions[i].x + "," + keyPositions[i].y);
+            } else {
+                keyPositions[i] = null;
+                System.out.println("No spawn tile for key " + i);
+            }
+        }
+        // Axe
+        if (!axeTiles.isEmpty()) {
+            axePosition = axeTiles.remove(0);
+            System.out.println("Axe spawned at: " + axePosition.x + "," + axePosition.y);
+        } else {
+            axePosition = null;
+            System.out.println("No spawn tile for axe");
+        }
+        // Pickaxe
+        if (!pickaxeTiles.isEmpty()) {
+            pickaxePosition = pickaxeTiles.remove(0);
+            System.out.println("Pickaxe spawned at: " + pickaxePosition.x + "," + pickaxePosition.y);
+        } else {
+            pickaxePosition = null;
+            System.out.println("No spawn tile for pickaxe");
         }
     }
 
-    private boolean isOccupiedByKey(int x, int y) {
-        for (Point p : keyPositions) {
-            if (p != null && p.x == x && p.y == y) return true;
+    // Draws all objects (door, key, chest, etc.) on top of the tile background
+    private void drawObjects(Graphics g, int x, int y, int px, int py, int tileSize) {
+        // Draw door if tile is grass00 (000.png)
+        if (map[y][x] == grass00) {
+            g.drawImage(door, px, py, tileSize, tileSize, null);
         }
-        return false;
+        // Draw key if present
+        for (int i = 0; i < totalKeys; i++) {
+            if (!keyCollected[i] && keyPositions[i] != null && keyPositions[i].x == x && keyPositions[i].y == y) {
+                g.drawImage(key, px, py, tileSize, tileSize, null);
+            }
+        }
+        // Draw axe
+        if (axePosition != null && axePosition.x == x && axePosition.y == y) {
+            g.drawImage(axe, px, py, tileSize, tileSize, null);
+        }
+        // Draw pickaxe
+        if (pickaxePosition != null && pickaxePosition.x == x && pickaxePosition.y == y) {
+            g.drawImage(pickaxe, px, py, tileSize, tileSize, null);
+        }
     }
 
     public void draw(Graphics g, int vx, int vy, int viewCols, int viewRows, int tileSize, Player player) {
@@ -284,15 +329,13 @@ public class GameMap {
                 int px = (x - vx) * tileSize;
                 int py = (y - vy) * tileSize;
                 int tileIdx = map[y][x];
-                if (tileIdx == -1) {
-                    g.drawImage(tileImages[grass00], px, py, tileSize, tileSize, null);
-                    if (!treasureOpen) g.drawImage(door, px, py, tileSize, tileSize, null);
-                } else if (tileIdx >= 0 && tileIdx < tileImages.length && tileImages[tileIdx] != null) {
+                if (tileIdx >= 0 && tileIdx < tileImages.length && tileImages[tileIdx] != null) {
                     g.drawImage(tileImages[tileIdx], px, py, tileSize, tileSize, null);
                 } else {
                     g.setColor(Color.MAGENTA);
                     g.fillRect(px, py, tileSize, tileSize);
                 }
+                drawObjects(g, x, y, px, py, tileSize);
             }
         }
         for (int i = 0; i < totalKeys; i++) {
@@ -331,15 +374,13 @@ public class GameMap {
                 int mapY = startRow + y;
                 if (mapX < 0 || mapY < 0 || mapX >= cols || mapY >= rows) continue;
                 int tileIdx = map[mapY][mapX];
-                if (tileIdx == -1) {
-                    g.drawImage(tileImages[grass00], px, py, tileSize, tileSize, null);
-                    g.drawImage(door, px, py, tileSize, tileSize, null);
-                } else if (tileIdx >= 0 && tileIdx < tileImages.length && tileImages[tileIdx] != null) {
+                if (tileIdx >= 0 && tileIdx < tileImages.length && tileImages[tileIdx] != null) {
                     g.drawImage(tileImages[tileIdx], px, py, tileSize, tileSize, null);
                 } else {
                     g.setColor(Color.MAGENTA);
                     g.fillRect(px, py, tileSize, tileSize);
                 }
+                drawObjects(g, mapX, mapY, px, py, tileSize);
             }
         }
         for (int i = 0; i < totalKeys; i++) {
@@ -415,8 +456,76 @@ public class GameMap {
         }
     }
 
+    // Neue Methode: Minimap oben rechts mit echten Texturen
+    public void drawMiniMap(Graphics g, int panelWidth, int panelHeight, Player player) {
+        int miniTile = 4; // Kleinere Mini-Tiles (vorher 8)
+        int margin = 20;
+        int mapW = cols * miniTile;
+        int mapH = rows * miniTile;
+        int ox = panelWidth - mapW - margin;
+        int oy = margin;
+        // Hintergrund
+        g.setColor(new Color(0, 0, 0, 180));
+        g.fillRoundRect(ox - 6, oy - 6, mapW + 12, mapH + 12, 12, 12);
+        // Tiles + objects
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                int tileIdx = map[y][x];
+                int px = ox + x * miniTile;
+                int py = oy + y * miniTile;
+                if (tileIdx >= 0 && tileIdx < tileImages.length && tileImages[tileIdx] != null) {
+                    g.drawImage(tileImages[tileIdx], px, py, miniTile, miniTile, null);
+                } else {
+                    g.setColor(Color.MAGENTA);
+                    g.fillRect(px, py, miniTile, miniTile);
+                }
+                // Draw door overlay if grass00
+                if (tileIdx == grass00) {
+                    g.drawImage(door, px, py, miniTile, miniTile, null);
+                }
+                // Draw key if present
+                for (int i = 0; i < totalKeys; i++) {
+                    if (!keyCollected[i] && keyPositions[i] != null && keyPositions[i].x == x && keyPositions[i].y == y) {
+                        g.drawImage(key, px, py, miniTile, miniTile, null);
+                    }
+                }
+                // Draw axe
+                if (axePosition != null && axePosition.x == x && axePosition.y == y) {
+                    g.drawImage(axe, px, py, miniTile, miniTile, null);
+                }
+                // Draw pickaxe
+                if (pickaxePosition != null && pickaxePosition.x == x && pickaxePosition.y == y) {
+                    g.drawImage(pickaxe, px, py, miniTile, miniTile, null);
+                }
+            }
+        }
+        // Truhe
+        int chestX = houseTopLeft != null ? houseTopLeft.x + houseW / 2 : -1;
+        int chestY = houseTopLeft != null ? houseTopLeft.y + houseH / 2 : -1;
+        if (treasureOpen && houseTopLeft != null) {
+            int px = ox + chestX * miniTile;
+            int py = oy + chestY * miniTile;
+            g.drawImage(chest, px, py, miniTile, miniTile, null);
+        }
+        // Spieler
+        int px = ox + player.getX() * miniTile;
+        int py = oy + player.getY() * miniTile;
+        g.setColor(Color.RED);
+        g.fillOval(px + 1, py + 1, miniTile - 2, miniTile - 2);
+    }
+
     private boolean isInView(int x, int y, int vx, int vy, int viewCols, int viewRows) {
         return x >= vx && x < vx + viewCols && y >= vy && y < vy + viewRows;
+    }
+
+    // Call this to open all doors (e.g. after collecting all keys or by event)
+    public void openAllDoors() {
+        doorsOpen = true;
+    }
+
+    // Call this to close all doors (reset)
+    public void closeAllDoors() {
+        doorsOpen = false;
     }
 
     public void reset() {
@@ -424,15 +533,20 @@ public class GameMap {
         this.visited = new boolean[rows][cols];
         this.foundKeys = 0;
         this.treasureOpen = false;
+        this.doorsOpen = false;
+        this.axePosition = null;
+        this.pickaxePosition = null;
         if (mapSource == MapSource.FILE) {
             loadMapFromFile(mapFilePath);
         } else {
             generateMap();
             saveMapToFile("src/main/java/games/Speedrun/resources/rdm_gen_world.txt");
         }
-        placePlayerAndHouse();
-        placeKeys();
+        // Entferne Platzieren von Haus und Keys beim Zurücksetzen
+        // placePlayerAndHouse();
+        // placeKeys();
         visit(playerX, playerY);
+        spawnCollectables();
     }
 
     public int getRows() { return rows; }
@@ -451,7 +565,8 @@ public class GameMap {
     public boolean canMoveTo(int nx, int ny, Player.Direction dir) {
         if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) return false;
         int tile = map[ny][nx];
-        // Tür- und Standardkollision
+        // Block movement if door is present and not open
+        if (tile == grass00 && !doorsOpen) return false;
         if (tile == -1 && foundKeys < totalKeys && !treasureOpen) return false;
         if (tile == stone32 || tile == water01 || tile == tree16 || tile == water00
             || tile == tile20 || tile == tile21 || tile == tile22 || tile == tile23
@@ -481,7 +596,15 @@ public class GameMap {
             if (!keyCollected[i] && keyPositions[i] != null && keyPositions[i].x == x && keyPositions[i].y == y) {
                 keyCollected[i] = true;
                 foundKeys++;
+                // Open doors if all keys collected
+                if (foundKeys == totalKeys) openAllDoors();
             }
+        }
+        if (axePosition != null && axePosition.x == x && axePosition.y == y) {
+            axePosition = null; // collected
+        }
+        if (pickaxePosition != null && pickaxePosition.x == x && pickaxePosition.y == y) {
+            pickaxePosition = null; // collected
         }
     }
 
@@ -498,8 +621,9 @@ public class GameMap {
             generateMap();
             saveMapToFile("src/main/java/games/Speedrun/resources/rdm_gen_world.txt");
         }
-        placePlayerAndHouse();
-        placeKeys();
+        // Entferne Platzieren von Haus und Keys beim Neuladen
+        // placePlayerAndHouse();
+        // placeKeys();
         visit(playerX, playerY);
     }
 
@@ -510,4 +634,11 @@ public class GameMap {
         if (x < 0 || x >= cols || y < 0 || y >= rows) return -1;
         return map[y][x];
     }
+
+    // Getter für Inventar-Anzeige
+    public Image getKeyIcon() { return key; }
+    public Image getAxeIcon() { return axe; }
+    public Image getPickaxeIcon() { return pickaxe; }
+    public boolean hasAxe() { return axePosition == null; }
+    public boolean hasPickaxe() { return pickaxePosition == null; }
 }

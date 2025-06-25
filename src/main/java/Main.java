@@ -20,7 +20,7 @@ public class Main {
                         Snake.start(() -> Window.startMainscreen(this));
                         break;
                     case "MonkeyType":
-                        MonkeyType.start();
+                        MonkeyType.start(() -> Window.startMainscreen(this));
                         break;
                     case "Speedrun":
                         Speedrun.start(() -> Window.startMainscreen(this));

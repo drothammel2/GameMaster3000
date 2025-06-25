@@ -17,8 +17,10 @@ public class GameplayState implements GameState {
     private boolean gameWon = false;
     private long startTime, endTime;
     private boolean showMap = false;
+    private boolean showMiniMap = false; // minimap is hidden by default
     private boolean paused = false;
     private boolean wasdMode = true; // default to WASD
+    private boolean showInventory = false;
 
     // Smooth camera
     private float cameraX, cameraY;
@@ -111,10 +113,15 @@ public class GameplayState implements GameState {
             g.drawString("Drücke ENTER für neuen Run", 200, 340);
         }
 
+        if (showMiniMap) {
+            gameMap.drawMiniMap(g, width, height, player);
+        }
         if (showMap) {
             gameMap.drawMapOverlay(g, width, height, player);
         }
-
+        if (showInventory) {
+            drawInventory(g, width, height);
+        }
         if (paused) {
             g.setColor(new Color(0, 0, 0, 180));
             g.fillRect(0, 0, width, height);
@@ -126,6 +133,40 @@ public class GameplayState implements GameState {
             int menuX = width / 2 - 260;
             g.drawString("ESC: Resume   Q: Quit   C: Change controls   K: Main Menu", menuX, menuY);
             g.drawString("R: Reload random map   W: Worldbuilder map", menuX, menuY + 40);
+        }
+    }
+
+    private void drawInventory(Graphics g, int width, int height) {
+        // Größeres Inventar-Overlay oben links
+        int boxW = 320, boxH = 180;
+        int x = 30, y = 60;
+        g.setColor(new Color(30, 30, 30, 230));
+        g.fillRoundRect(x, y, boxW, boxH, 18, 18);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 26));
+        g.drawString("Inventar", x + 16, y + 36);
+        int iconY = y + 60;
+        int iconX = x + 30;
+        int iconSize = 48;
+        int spacingY = 54;
+        // Keys (immer sichtbar, zeigt Anzahl)
+        g.drawImage(gameMap.getKeyIcon(), iconX, iconY, iconSize, iconSize, null);
+        g.setColor(Color.YELLOW);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+        g.drawString("x " + gameMap.getFoundKeys() + " / " + gameMap.getTotalKeys(), iconX + 60, iconY + 32);
+        // Axe (nur wenn eingesammelt)
+        iconY += spacingY;
+        if (gameMap.hasAxe()) {
+            g.drawImage(gameMap.getAxeIcon(), iconX, iconY, iconSize, iconSize, null);
+            g.setColor(Color.GREEN);
+            g.drawString("Axt", iconX + 60, iconY + 32);
+        }
+        // Pickaxe (nur wenn eingesammelt)
+        iconY += spacingY;
+        if (gameMap.hasPickaxe()) {
+            g.drawImage(gameMap.getPickaxeIcon(), iconX, iconY, iconSize, iconSize, null);
+            g.setColor(Color.GREEN);
+            g.drawString("Spitzhacke", iconX + 60, iconY + 32);
         }
     }
 
@@ -174,7 +215,13 @@ public class GameplayState implements GameState {
                 }
             }
             if (e.getKeyCode() == KeyEvent.VK_M) {
+                showMiniMap = !showMiniMap;
+            }
+            if (e.getKeyCode() == KeyEvent.VK_TAB) {
                 showMap = !showMap;
+            }
+            if (e.getKeyCode() == KeyEvent.VK_I) {
+                showInventory = !showInventory;
             }
             input.keyPressed(e.getKeyCode());
         }
